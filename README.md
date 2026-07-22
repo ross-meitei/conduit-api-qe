@@ -38,38 +38,67 @@ dotnet test --settings coverlet.runsettings
 
 Allure results land in `allure-results/`; generate a report with the Allure CLI.
 
-## appqe checks (from the appqe repo)
+## Prerequisites
+
+| # | Requirement | Check |
+|---|---|---|
+| 1 | **.NET 9 SDK** | `dotnet --version` |
+| 2 | **appqe on `PATH`** - the guardrail hooks shell out to it and **fail closed** | `appqe --version` |
+| 3 | **`env/.env`** - copy from `env/.env.example` | `cat env/.env` |
+
+`appqe doctor` verifies the wiring in one command and names the fix for anything
+missing. See [`QE.md`](QE.md) for how to drive the agentic workflow itself.
+
+## Checks
 
 ```bash
-appqe --project-root . openapi                # endpoint inventory (19 ops)
-appqe --project-root . lint tests utils       # guardrails (blocking)
-appqe --project-root . lint tests utils --strict   # + assertion standards (advisory)
-appqe --project-root . coverage --kind api --detail  # measured endpoint coverage
+dotnet test --settings coverlet.runsettings   # the suite
+
+appqe openapi                          # endpoint inventory (19 operations)
+appqe lint tests utils                 # guardrails: secrets, prod URLs, TLS, weak assertions
+appqe lint tests utils --strict        # + the assertion standards
+appqe coverage --kind api --detail     # measured coverage, gaps in risk order
+appqe coverage --kind api --check-baseline   # CI gate: fails on regression
+appqe contract verify                  # the running API vs the spec
+appqe doctor                           # is any of this actually wired?
 ```
 
-Coverage is **measured** from the spec and the test sources - it is not a number
-passed on the command line. The README previously advertised
-`coverage --covered 19 --total 19`, which reported 100% because both figures were
-typed in by the caller; a threshold gate whose inputs are asserted rather than
-measured cannot fail.
+All of it runs in CI via [`.github/workflows/api-tests.yml`](.github/workflows/api-tests.yml).
 
-### Where coverage actually stands
+### Where things stand
 
-```
-api coverage 0/19 = 0% (threshold 80%) [measured]
-covered 0, partial 11, uncovered 8
-```
+- **Suite:** 10 passing, 1 quarantined (`CONDUIT-301`).
+- **Guardrail lint:** clean.
+- **Contract drift:** `0 findings, 0 breaking` - the spec and the running API agree.
+- **Coverage:** measured, and gated on *regression* rather than the 80% target.
 
-An operation counts as **covered** only with a happy path, a documented error
-case, and an auth case where it is secured. Eleven operations are exercised but
-incomplete; eight - `PUT /user`, `GET /articles/feed`, `PUT /articles/{slug}`,
-and the three comments operations among them - have no test at all. Closing this
-is tracked as CONDUIT-304, and the CI coverage step is staged (reporting, not
-blocking) until it is.
+Coverage is **measured** from the spec and the test sources, never a number passed
+on the command line. This README previously advertised
+`coverage --covered 19 --total 19`, which reported 100% precisely because both
+figures were typed in by the caller - a threshold gate whose inputs are asserted
+cannot fail.
 
-The suite itself is green: **10 passing, 1 quarantined** (`CONDUIT-301`, the
-follow flow, which this backend cannot support - see the discovery log).
+An operation counts as **covered** only with a happy path, the documented error
+cases it warrants, and an auth case where it is secured. A single 200 test is
+*partial*, and a quarantined test counts for nothing. Several operations - `PUT
+/user`, `GET /articles/feed`, `PUT /articles/{slug}` and the three comments
+operations among them - have no test at all. Closing that is tracked as
+CONDUIT-304.
+
+CI gates on `--check-baseline`: an absolute 80% gate would be red on every pull
+request today and would simply be switched off, which enforces nothing. Raise the
+bar deliberately with `appqe coverage --kind api --accept-baseline` and commit
+the diff.
+
+### The spec is corrected, not assumed
+
+`specs/openapi.json` has been amended from verified evidence where it disagreed
+with the running API - an undocumented 404 on profiles, `DELETE` returning 204
+rather than 200, an undocumented `title` length limit, and a list projection that
+omits a field the spec marks required. Each decision and its evidence is in the
+discovery log (`appqe discovery`), so none of it can be quietly reversed to make
+a test pass.
 
 Guardrails allow the demo host and block production; no secret, token, or
-production URL is hardcoded, and TLS verification is left at the platform
-default (credentials come from env / a runtime login).
+production URL is hardcoded, and TLS verification is left at the platform default
+(credentials come from env / a runtime login).
