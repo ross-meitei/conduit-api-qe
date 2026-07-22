@@ -1,0 +1,51 @@
+# appqe.yml - Conduit API QE (C# / xUnit integration tests).
+#
+# Targets the public RealWorld "Conduit" API (https://api.realworld.show/api).
+# API tests are generated as .NET xUnit with a typed client generated from the
+# OpenAPI spec (NSwag) and Allure reporting. API-only project.
+
+project_name: conduit-api-qe
+client_name: "RealWorld Conduit"
+
+profile: openapi_xunit         # API tests generated as .NET xUnit (C#)
+api_language: "C#"
+
+api:
+  openapi_path: specs/openapi.json
+  base_url: https://api.realworld.show/api   # public demo backend (non-prod)
+  tests_dir: tests/api
+  auth_scheme: "Token JWT (Authorization: Token <jwt>)"
+
+tracker:
+  base_url: https://conduit-qe.atlassian.net
+  project_key: CONDUIT
+
+api_test_runner: dotnet test
+default_platform: claude-cli
+
+security:
+  allow_prod: false
+  allowed_hosts:
+    - api.realworld.show
+  prod_markers:
+    - prod
+    - production
+    - live
+  allowed_commands:
+    - dotnet
+    - nswag
+    - allure
+  redact_pii: true
+
+quality:
+  min_endpoint_coverage: 0.8
+  self_review_iterations: 2
+
+intents:
+  - mode: bug_retest
+    pattern: verify the fix for CONDUIT-\d+
+    confidence: 0.95
+
+gates:
+  generation_review:
+    auto_approve: true

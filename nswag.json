@@ -1,0 +1,25 @@
+{
+  "runtime": "Net90",
+  "defaultVariables": null,
+  "documentGenerator": {
+    "fromDocument": {
+      "url": "specs/openapi.json",
+      "output": null
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpClient": {
+      "generateClientClasses": true,
+      "generateDtoTypes": true,
+      "injectHttpClient": true,
+      "disposeHttpClient": true,
+      "generateExceptionClasses": true,
+      "exceptionClass": "ApiException",
+      "className": "ConduitApiClient",
+      "namespace": "ConduitApiClientNamespace",
+      "output": "generated-client/ConduitApiClient.cs",
+      "operationGenerationMode": "SingleClientFromOperationId",
+      "requiredPropertiesMustBeDefined": false
+    }
+  }
+}

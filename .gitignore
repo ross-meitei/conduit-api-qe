@@ -1,0 +1,18 @@
+# .NET build output + NSwag-generated client (regenerated from specs/openapi.json)
+bin/
+obj/
+generated-client/
+TestResults/
+*.user
+
+# Allure
+allure-results/
+allure-report/
+
+# appqe runtime
+.appqe/
+
+# Local env / secrets
+.env
+.env.*
+!.env.example

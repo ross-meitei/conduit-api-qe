@@ -1,0 +1,514 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "RealWorld Conduit API",
+    "description": "Public API for the RealWorld example app (a Medium.com clone). Articles, comments, profiles, favorites, tags, and JWT user auth. Hosted demo: https://api.realworld.show/api.",
+    "version": "1.0.0",
+    "license": { "name": "MIT", "url": "https://opensource.org/licenses/MIT" }
+  },
+  "servers": [
+    { "url": "https://api.realworld.show/api", "description": "Public demo backend" }
+  ],
+  "security": [{ "Token": [] }],
+  "tags": [
+    { "name": "User and Authentication" },
+    { "name": "Profile" },
+    { "name": "Articles" },
+    { "name": "Comments" },
+    { "name": "Favorites" },
+    { "name": "Tags" }
+  ],
+  "paths": {
+    "/users/login": {
+      "post": {
+        "tags": ["User and Authentication"],
+        "operationId": "Login",
+        "summary": "Existing user login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginUserRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserResponse" } } } },
+          "401": { "description": "Unauthorized" },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "tags": ["User and Authentication"],
+        "operationId": "CreateUser",
+        "summary": "Register a new user",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NewUserRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserResponse" } } } },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "tags": ["User and Authentication"],
+        "operationId": "GetCurrentUser",
+        "summary": "Get current user",
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserResponse" } } } },
+          "401": { "description": "Unauthorized" },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      },
+      "put": {
+        "tags": ["User and Authentication"],
+        "operationId": "UpdateCurrentUser",
+        "summary": "Update current user",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateUserRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserResponse" } } } },
+          "401": { "description": "Unauthorized" },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      }
+    },
+    "/profiles/{username}": {
+      "get": {
+        "tags": ["Profile"],
+        "operationId": "GetProfileByUsername",
+        "summary": "Get a profile",
+        "parameters": [
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/profiles/{username}/follow": {
+      "post": {
+        "tags": ["Profile"],
+        "operationId": "FollowUserByUsername",
+        "summary": "Follow a user",
+        "parameters": [
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "delete": {
+        "tags": ["Profile"],
+        "operationId": "UnfollowUserByUsername",
+        "summary": "Unfollow a user",
+        "parameters": [
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/articles": {
+      "get": {
+        "tags": ["Articles"],
+        "operationId": "GetArticles",
+        "summary": "List articles (globally). Optional auth.",
+        "security": [{ "Token": [] }, {}],
+        "parameters": [
+          { "name": "tag", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "author", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "favorited", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 20 } },
+          { "name": "offset", "in": "query", "required": false, "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MultipleArticlesResponse" } } } },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Articles"],
+        "operationId": "CreateArticle",
+        "summary": "Create an article",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NewArticleRequest" } } }
+        },
+        "responses": {
+          "201": { "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SingleArticleResponse" } } } },
+          "401": { "description": "Unauthorized" },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      }
+    },
+    "/articles/feed": {
+      "get": {
+        "tags": ["Articles"],
+        "operationId": "GetArticlesFeed",
+        "summary": "Get recent articles from users you follow",
+        "parameters": [
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 20 } },
+          { "name": "offset", "in": "query", "required": false, "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MultipleArticlesResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/articles/{slug}": {
+      "get": {
+        "tags": ["Articles"],
+        "operationId": "GetArticle",
+        "summary": "Get an article. Optional auth.",
+        "security": [{ "Token": [] }, {}],
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SingleArticleResponse" } } } },
+          "404": { "description": "Not found" }
+        }
+      },
+      "put": {
+        "tags": ["Articles"],
+        "operationId": "UpdateArticle",
+        "summary": "Update an article",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateArticleRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SingleArticleResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "delete": {
+        "tags": ["Articles"],
+        "operationId": "DeleteArticle",
+        "summary": "Delete an article",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/articles/{slug}/comments": {
+      "get": {
+        "tags": ["Comments"],
+        "operationId": "GetArticleComments",
+        "summary": "Get comments for an article. Optional auth.",
+        "security": [{ "Token": [] }, {}],
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MultipleCommentsResponse" } } } },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Comments"],
+        "operationId": "CreateArticleComment",
+        "summary": "Create a comment for an article",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NewCommentRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SingleCommentResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/articles/{slug}/comments/{id}": {
+      "delete": {
+        "tags": ["Comments"],
+        "operationId": "DeleteArticleComment",
+        "summary": "Delete a comment for an article",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/articles/{slug}/favorite": {
+      "post": {
+        "tags": ["Favorites"],
+        "operationId": "CreateArticleFavorite",
+        "summary": "Favorite an article",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SingleArticleResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "delete": {
+        "tags": ["Favorites"],
+        "operationId": "DeleteArticleFavorite",
+        "summary": "Unfavorite an article",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SingleArticleResponse" } } } },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/tags": {
+      "get": {
+        "tags": ["Tags"],
+        "operationId": "GetTags",
+        "summary": "Get all tags",
+        "security": [],
+        "responses": {
+          "200": { "description": "OK",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TagsResponse" } } } },
+          "422": { "description": "Unexpected error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenericErrorModel" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Token": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "JWT auth. Prefix the token with the literal string 'Token', e.g. 'Authorization: Token jwt.token.here'."
+      }
+    },
+    "schemas": {
+      "LoginUser": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "LoginUserRequest": {
+        "type": "object",
+        "required": ["user"],
+        "properties": { "user": { "$ref": "#/components/schemas/LoginUser" } }
+      },
+      "NewUser": {
+        "type": "object",
+        "required": ["username", "email", "password"],
+        "properties": {
+          "username": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "format": "password" }
+        }
+      },
+      "NewUserRequest": {
+        "type": "object",
+        "required": ["user"],
+        "properties": { "user": { "$ref": "#/components/schemas/NewUser" } }
+      },
+      "User": {
+        "type": "object",
+        "required": ["email", "token", "username", "bio", "image"],
+        "properties": {
+          "email": { "type": "string" },
+          "token": { "type": "string" },
+          "username": { "type": "string" },
+          "bio": { "type": "string", "nullable": true },
+          "image": { "type": "string", "nullable": true }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "required": ["user"],
+        "properties": { "user": { "$ref": "#/components/schemas/User" } }
+      },
+      "UpdateUser": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string" },
+          "username": { "type": "string" },
+          "bio": { "type": "string" },
+          "image": { "type": "string" }
+        }
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "required": ["user"],
+        "properties": { "user": { "$ref": "#/components/schemas/UpdateUser" } }
+      },
+      "Profile": {
+        "type": "object",
+        "required": ["username", "bio", "image", "following"],
+        "properties": {
+          "username": { "type": "string" },
+          "bio": { "type": "string", "nullable": true },
+          "image": { "type": "string", "nullable": true },
+          "following": { "type": "boolean" }
+        }
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "required": ["profile"],
+        "properties": { "profile": { "$ref": "#/components/schemas/Profile" } }
+      },
+      "Article": {
+        "type": "object",
+        "required": ["slug", "title", "description", "body", "tagList", "createdAt", "updatedAt",
+                     "favorited", "favoritesCount", "author"],
+        "properties": {
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "body": { "type": "string" },
+          "tagList": { "type": "array", "items": { "type": "string" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "favorited": { "type": "boolean" },
+          "favoritesCount": { "type": "integer" },
+          "author": { "$ref": "#/components/schemas/Profile" }
+        }
+      },
+      "SingleArticleResponse": {
+        "type": "object",
+        "required": ["article"],
+        "properties": { "article": { "$ref": "#/components/schemas/Article" } }
+      },
+      "MultipleArticlesResponse": {
+        "type": "object",
+        "required": ["articles", "articlesCount"],
+        "properties": {
+          "articles": { "type": "array", "items": { "$ref": "#/components/schemas/Article" } },
+          "articlesCount": { "type": "integer" }
+        }
+      },
+      "NewArticle": {
+        "type": "object",
+        "required": ["title", "description", "body"],
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "body": { "type": "string" },
+          "tagList": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "NewArticleRequest": {
+        "type": "object",
+        "required": ["article"],
+        "properties": { "article": { "$ref": "#/components/schemas/NewArticle" } }
+      },
+      "UpdateArticle": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "body": { "type": "string" }
+        }
+      },
+      "UpdateArticleRequest": {
+        "type": "object",
+        "required": ["article"],
+        "properties": { "article": { "$ref": "#/components/schemas/UpdateArticle" } }
+      },
+      "Comment": {
+        "type": "object",
+        "required": ["id", "createdAt", "updatedAt", "body", "author"],
+        "properties": {
+          "id": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "body": { "type": "string" },
+          "author": { "$ref": "#/components/schemas/Profile" }
+        }
+      },
+      "SingleCommentResponse": {
+        "type": "object",
+        "required": ["comment"],
+        "properties": { "comment": { "$ref": "#/components/schemas/Comment" } }
+      },
+      "MultipleCommentsResponse": {
+        "type": "object",
+        "required": ["comments"],
+        "properties": {
+          "comments": { "type": "array", "items": { "$ref": "#/components/schemas/Comment" } }
+        }
+      },
+      "NewComment": {
+        "type": "object",
+        "required": ["body"],
+        "properties": { "body": { "type": "string" } }
+      },
+      "NewCommentRequest": {
+        "type": "object",
+        "required": ["comment"],
+        "properties": { "comment": { "$ref": "#/components/schemas/NewComment" } }
+      },
+      "TagsResponse": {
+        "type": "object",
+        "required": ["tags"],
+        "properties": { "tags": { "type": "array", "items": { "type": "string" } } }
+      },
+      "GenericErrorModel": {
+        "type": "object",
+        "required": ["errors"],
+        "properties": {
+          "errors": {
+            "type": "object",
+            "required": ["body"],
+            "properties": { "body": { "type": "array", "items": { "type": "string" } } }
+          }
+        }
+      }
+    }
+  }
+}
