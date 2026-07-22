@@ -18,7 +18,7 @@
     },
     "DELETE /profiles/{username}/follow": {
       "asserted": [],
-      "state": "partial"
+      "state": "uncovered"
     },
     "GET /articles": {
       "asserted": [
@@ -76,7 +76,7 @@
     },
     "POST /profiles/{username}/follow": {
       "asserted": [],
-      "state": "partial"
+      "state": "uncovered"
     },
     "POST /users": {
       "asserted": [],
@@ -97,9 +97,9 @@
   },
   "totals": {
     "covered": 0,
-    "partial": 11,
+    "partial": 9,
     "total": 19,
-    "uncovered": 8
+    "uncovered": 10
   },
   "version": 2
 }

@@ -10,7 +10,9 @@ if APPQE="$(appqe_resolve)"; then "$APPQE" dashboard >/dev/null 2>&1 || true; fi
 payload="$(cat 2>/dev/null || true)"
 session="$(printf '%s' "$payload" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
 [ -n "$session" ] || session="default"
-marker_dir=".appqe/.session"
+# Outside the repo: a once-per-session marker is not a project artifact, and
+# under .appqe/ it surfaced in the explorer and in git status.
+marker_dir="${TMPDIR:-/tmp}/appqe-session"
 marker="$marker_dir/stop-prompted-$session"
 if [ -f "$marker" ]; then
   exit 0                      # already prompted this session - let it end.

@@ -3,7 +3,8 @@
 $payload = [Console]::In.ReadToEnd()
 $session = "default"
 if ($payload -match '"session_id"\s*:\s*"([^"]*)"') { $session = $Matches[1] }
-$markerDir = ".appqe/.session"
+# Outside the repo: a once-per-session marker is not a project artifact.
+$markerDir = Join-Path ([System.IO.Path]::GetTempPath()) "appqe-session"
 $marker = Join-Path $markerDir "stop-prompted-$session"
 if (Test-Path $marker) { exit 0 }
 New-Item -ItemType Directory -Force -Path $markerDir | Out-Null

@@ -8,7 +8,7 @@ description: Typed cross-run QE findings. Status lifecycle promotes a repeated f
 
 # appqe QE findings
 
-> OKF v0.1 - 6 finding(s) across 4 domain(s)
+> OKF v0.1 - 7 finding(s) across 5 domain(s)
 
 ## Status lifecycle
 
@@ -39,6 +39,12 @@ description: Typed cross-run QE findings. Status lifecycle promotes a repeated f
 | Finding | Status | Seen | Rule |
 |---|---|---|---|
 | [GET /profiles/{username} returns 404 for any caller other than the profile's owner, and 404 (not the documented 401) when unauthenticated. Verified against api.realworld.show: registering user A and fetching A's profile with A's token returns 200; fetching it with B's token, or anonymously, returns 404.](profiles/get-profiles-username-returns-404-for-any-caller-other-than-.md) | NEW | 1 | Fetch a profile as its own owner. Do not write cross-user profile or follow tests against this backend - POST /profiles/{username}/follow 404s for every other user, so the follow flow is untestable here (quarantined as CONDUIT-301). |
+
+### spec-corrections (1)
+
+| Finding | Status | Seen | Rule |
+|---|---|---|---|
+| [specs/openapi.json amended from verified evidence: GET /profiles/{username} now documents 404; DELETE /articles/{slug} corrected 200 -> 204; NewArticle.title given maxLength 99; MultipleArticlesResponse now references a new ArticleSummary schema without the required 'body'.](spec-corrections/specs-openapi-json-amended-from-verified-evidence-get-profil.md) | NEW | 1 | The spec now matches observed behaviour for these four; re-run 'appqe contract verify' after any backend deploy rather than assuming it still does. Do not reverse these to make a test pass - the evidence is recorded here. |
 
 ## Promotion candidates
 

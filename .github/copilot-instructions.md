@@ -36,6 +36,24 @@ API tests: **xUnit** (C#) in `tests/api`, run with
 Guardrail hooks enforce the first two. A block is a real finding - report it,
 never route around it.
 
+## Show progress in the task list, not in prose
+
+Any request here that takes more than one action gets a task list, created with
+your host's todo tool **before** the first action and updated **at every step**:
+mark what finished as completed and the next step as in-progress in the same
+call, and carry what you learned in the finished item's title.
+
+Two failure modes, both common:
+
+- **Creating it once.** The panel renders where the most recent update happened,
+  so a list that is seeded and then left alone scrolls out of view and shows the
+  user stale state for the rest of the run. If several actions have passed with
+  no update, the panel is already behind you.
+- **Printing it instead.** Writing the checklist into your reply as markdown does
+  not create the panel - only the tool call does. A written copy is noise the
+  user reads twice and it is stale immediately. Say in one sentence what you are
+  starting; let the panel carry the rest.
+
 ## Working here
 
 Read the discovery log before starting; append durable findings after. Stop at

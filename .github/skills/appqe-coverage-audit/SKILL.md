@@ -1,45 +1,37 @@
 ---
 name: appqe-coverage-audit
-description: 'Measure test coverage against the spec/app - which endpoints and flows (and negative paths) are untested.'
+description: 'Measure endpoint coverage, and report the gaps in the order that matters.'
 metadata: {version: 1.0.0, access: research}
 ---
 # Skill: Coverage audit
 
-## What counts as covered
+```bash
+appqe coverage --kind api --detail        # measured, with every gap
+appqe coverage --kind api --check-baseline  # CI: fail on regression
+```
 
-An operation is **covered** only when it has a happy path *and* the negative
-cases it warrants. A single 200 test is **partial**, not covered - most defects
-live in the error paths.
+Coverage is **measured** from the spec and the test sources - it is not a number
+you supply. An operation counts as **covered** only with a happy path, the
+documented error cases it warrants, and an auth case where it is secured. A
+single 200 test is *partial*: most defects live in the paths it does not touch.
 
-| State | Meaning |
-|---|---|
-| Covered | Happy + documented error codes + auth cases where applicable. |
-| Partial | Happy path only, or missing the auth case on a protected operation. |
-| Uncovered | No test exercises this operation at all. |
+The command already attributes each test to an operation by the call it makes
+(not the test's name - a test named for one endpoint that calls another is a
+coverage lie), skips quarantined tests, and orders gaps by risk: write
+operations, then public ones, then auth boundaries, then read-only.
 
-## Procedure
+## Your job, once you have the number
 
-1. Build the endpoint inventory (`appqe-openapi-parse`).
-2. Index existing tests by the operation they exercise - path + method, not test
-   file name. A test named for an endpoint that actually calls another is a
-   coverage lie; verify by the call, not the name.
-3. Classify each operation covered / partial / uncovered.
-4. Run `appqe coverage --covered N --total M` to check the
-   80% threshold.
+**Never report a bare percentage.** A number without the gap list cannot be
+acted on. Name the uncovered operations in the order the tool printed them, and
+say what risk each gap carries - that judgement is yours, not the tool's.
 
-## Prioritise the gaps
+If coverage is under 80%, that goes in the first
+line of the summary, never buried.
 
-Report gaps in risk order, not spec order:
-
-1. **Write operations** (POST/PUT/PATCH/DELETE) - they change state.
-2. **Unauthenticated or public** operations - reachable by anyone.
-3. **Auth and permission** boundaries - the 401/403 cases.
-4. Read-only operations on non-sensitive data.
-
-## Reporting
-
-Never report a bare percentage. A number without the gap list cannot be acted
-on. Name the uncovered operations, in priority order, and say what risk each
-gap carries. If coverage is under threshold, that goes in the first line.
+On an existing codebase, gate CI on `--check-baseline` rather than the
+threshold: an absolute gate is red on day one and gets switched off, which
+enforces nothing. Move the baseline deliberately with `--accept-baseline` and
+commit the diff.
 
 <!-- appqe:managed | do-not-edit-manually -->

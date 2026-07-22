@@ -22,7 +22,12 @@ session="$(printf '%s' "$payload" |
   sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
 [ -n "$session" ] || session="default"
 
-dir=".appqe/.session"
+# Ephemeral per-session state belongs outside the repo. Under .appqe/ it showed
+# up in the explorer and in git status as an untracked file called
+# "todo-cadence-<uuid>" containing tally marks, which reads like a broken
+# artifact of the thing it is supposed to be helping with. The session id is
+# unique per chat, so a flat temp dir is collision-free across projects.
+dir="${TMPDIR:-/tmp}/appqe-session"
 counter="$dir/todo-cadence-$session"
 mkdir -p "$dir" 2>/dev/null || exit 0
 

@@ -13,7 +13,9 @@ if ($payload -match '"tool_name"\s*:\s*"([^"]*)"') { $tool = $Matches[1] }
 $session = "default"
 if ($payload -match '"session_id"\s*:\s*"([^"]*)"') { $session = $Matches[1] }
 
-$dir = ".appqe/.session"
+# Ephemeral per-session state belongs outside the repo - under .appqe/ it showed
+# up in the explorer and in git status as an untracked file of tally marks.
+$dir = Join-Path ([System.IO.Path]::GetTempPath()) "appqe-session"
 $counter = Join-Path $dir "todo-cadence-$session"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 

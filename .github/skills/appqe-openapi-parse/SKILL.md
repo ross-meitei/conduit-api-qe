@@ -1,30 +1,26 @@
 ---
 name: appqe-openapi-parse
-description: 'Parse and validate the OpenAPI/Swagger spec and build the endpoint inventory that drives API test generation.'
+description: 'Build the endpoint inventory that drives API test generation, and flag the spec defects a parser cannot decide.'
 metadata: {version: 1.0.0, access: read-only}
 ---
-# Skill: Parse the OpenAPI spec
+# Skill: The endpoint inventory
 
-Use when you need the authoritative list of operations for **conduit-api-qe**.
+```bash
+appqe openapi --json     # the full inventory
+appqe openapi            # one line per operation
+```
 
-## Procedure
+That is the whole procedure. It loads `specs/openapi.json`, resolves `$ref`s,
+and emits one row per operation - operationId, tags, parameters, request schema,
+every documented response with its schema, and whether auth is required
+(`[auth]`) or optional (`[auth?]`). Ordering is deterministic so two runs diff
+cleanly. Do not re-parse the spec by hand: a hand-built inventory is the most
+common source of a test asserting the wrong shape.
 
-1. **Load** `specs/openapi.json`. If it is a URL, save a pinned local copy so
-   the run is reproducible and a spec change mid-run cannot go unnoticed.
-2. **Record the envelope**: OpenAPI version, `servers`/`basePath`,
-   `securitySchemes`, and any global parameters. These decide base URL and auth
-   for every generated test.
-3. **Build the inventory** - one row per `paths.<path>.<method>`: operationId,
-   tags, parameters (name/in/required/schema), requestBody schema, and every
-   documented response code with its schema.
-4. **Resolve `$ref`s** before reasoning about a schema. An unresolved ref is the
-   most common cause of a test asserting the wrong shape.
-5. **Flag spec defects** rather than guessing past them (see below).
+## What the command cannot decide
 
-`appqe openapi --json` produces this inventory directly; prefer it over
-re-parsing the spec by hand.
-
-## Spec defects to flag, never guess
+These need a person, and are the reason to read the spec rather than only its
+inventory. Record each in the discovery log with the decision taken.
 
 | Defect | Why it matters |
 |---|---|
@@ -34,12 +30,8 @@ re-parsing the spec by hand.
 | Auth declared globally but absent on an operation | Either a spec bug or a genuine public endpoint; the difference is a security finding. |
 | Two operations sharing an operationId | Breaks generated client naming. |
 
-Record each in the discovery log with the decision taken.
-
-## Output
-
-A stable, ordered inventory: one line per operation, `METHOD /path -> codes
-[auth] +body`. Deterministic ordering matters - it is diffed between runs to
-detect spec drift.
+If the spec is only reachable by URL, fetch it to a local file and point
+`api.openapi_path` at that copy - a spec that can change mid-run makes the run
+unreproducible.
 
 <!-- appqe:managed | do-not-edit-manually -->
