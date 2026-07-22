@@ -363,6 +363,7 @@ Never reuse the previous turn's question.
 | Spec drift / contract checks | `appqe-contract-diff` |
 | A test that passes and fails intermittently | `appqe-flaky-triage` |
 | Carrying knowledge between runs | `appqe-discovery-log` |
+| Needing a story, an AC, or a decision from Jira/Confluence/SharePoint | `appqe-context-sources` |
 | Long or repetitive runs | `appqe-token-economy` |
 
 ## Working economically
