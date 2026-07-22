@@ -63,4 +63,4 @@ The block is the finding. A hardcoded secret that a hook caught is a secret that
 would otherwise have reached the repository. Move it to env, and note in the
 discovery log where it came from.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

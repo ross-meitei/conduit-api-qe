@@ -15,4 +15,4 @@ openapi spec"`, then execute each phase and `appqe resume` with results.
 - Stop at the **plan** gate for approval before generating, and at the
   **generated-test review** gate before considering them final.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

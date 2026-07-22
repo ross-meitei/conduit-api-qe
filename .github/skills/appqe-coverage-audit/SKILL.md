@@ -34,4 +34,4 @@ threshold: an absolute gate is red on day one and gets switched off, which
 enforces nothing. Move the baseline deliberately with `--accept-baseline` and
 commit the diff.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

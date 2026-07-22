@@ -32,4 +32,4 @@ schemas or status codes are breaking; new optional fields are additive.
 
 **Enforced by** `appqe openapi` (the spec must parse and produce an inventory) and `appqe contract verify` (drift against the running API).
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

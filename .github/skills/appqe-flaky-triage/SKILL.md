@@ -40,4 +40,4 @@ date. A quarantined test with no bug is a deleted test with extra steps.
 Record the cause and the fix in the discovery log - flaky causes recur, and the
 next run should not re-diagnose one you have already solved.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

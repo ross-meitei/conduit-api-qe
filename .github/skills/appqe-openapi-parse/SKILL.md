@@ -34,4 +34,4 @@ If the spec is only reachable by URL, fetch it to a local file and point
 `api.openapi_path` at that copy - a spec that can change mid-run makes the run
 unreproducible.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

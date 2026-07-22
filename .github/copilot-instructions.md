@@ -1,4 +1,4 @@
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->
 # conduit-api-qe - QE standards
 
 Repo-wide standards for **conduit-api-qe**. These apply to every request in

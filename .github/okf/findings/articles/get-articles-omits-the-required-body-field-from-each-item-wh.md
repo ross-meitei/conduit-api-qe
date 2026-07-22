@@ -2,7 +2,7 @@
 type: finding
 title: 'GET /articles omits the required ''body'' field from each item, while GET /articles/{slug} includes it. Schema validation against components.schemas.Article fails with ArrayItemNotValid on every list item.'
 domain: articles
-status: NEW
+status: PROMOTED
 seen_count: 1
 first_seen: 2026-07-22
 last_seen: 2026-07-22

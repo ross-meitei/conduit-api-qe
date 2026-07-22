@@ -15,4 +15,4 @@ each phase and `appqe resume` with results.
 - Deliver a prioritized coverage report (public + write endpoints and critical
   flows first). Don't count "not 500"-only or schema-skipping tests as coverage.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

@@ -89,4 +89,4 @@ Test: CreateArticle_MissingTitle_Returns422
             response.body.errors contains "title"     # the point of this case
 ```
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

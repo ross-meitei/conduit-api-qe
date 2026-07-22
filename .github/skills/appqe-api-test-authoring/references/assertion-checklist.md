@@ -1,4 +1,4 @@
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->
 # Reference: assertion checklist by response class
 
 Load this when writing assertions for a status class you have not covered yet.

@@ -75,4 +75,4 @@ one line and re-confirm before generating.
 Record the approved plan path in the run so `appqe-run-report` can cite what was
 agreed versus what was delivered.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

@@ -14,4 +14,4 @@ openapi"`, then execute each phase and `appqe resume` with results.
 - Diff tests vs spec; classify each finding **breaking / additive / cosmetic**.
 - Deliver a drift report with the affected test files and recommended updates.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

@@ -63,4 +63,4 @@ give the `run_id` so it can be resumed.
 
 Redact tokens, credentials, and customer identifiers from any quoted output.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

@@ -34,4 +34,4 @@ endpoint) -> add coverage; cosmetic -> no action.
 
 **Enforced by** `appqe coverage --check-baseline` (regression gate), `appqe lint --strict`, and the phase evidence contracts - `run_tests` cannot complete without a parsed test report newer than the generated code.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

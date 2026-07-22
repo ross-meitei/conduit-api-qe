@@ -47,4 +47,4 @@ brevity creates ambiguity. Resume compression afterwards.
 
 A compressed reply that has to be re-explained cost more than the verbose one.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

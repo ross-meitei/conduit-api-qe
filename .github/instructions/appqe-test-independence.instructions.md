@@ -32,4 +32,4 @@ leaves residue, that is a bug in the test, not acceptable noise.
 
 **Enforced by** **partly unenforceable.** Hardcoded secrets and production URLs are blocked by `appqe lint`, and unique-per-run data is visible in review - but independence, cleanup and idempotence are not statically checkable. Treat this file as a review checklist, not a gate: the suite running green in a random order is the only real evidence.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

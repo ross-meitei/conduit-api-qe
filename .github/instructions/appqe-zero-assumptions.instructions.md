@@ -28,4 +28,4 @@ drift), not something to paper over in the test.
 
 **Enforced by** `appqe lint --strict` (`undocumented-status-assertion`, `wrong-success-code` - the asserted code is compared against the spec's documented responses) and `appqe contract verify`, which settles whether the spec or the test is stale.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

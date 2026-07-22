@@ -36,4 +36,4 @@ rather than paraphrasing it.
 Keep it short enough to read before the diff. If the summary is longer than the
 reviewer's patience, the risks at the bottom will not be read.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

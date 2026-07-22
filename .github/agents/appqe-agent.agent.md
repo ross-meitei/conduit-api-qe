@@ -177,27 +177,34 @@ handle back into a run after an interruption, a new session, or a compaction.
 run id in its title - `"② Start run — qe-d3ae26bb98d1"` - and the next step
 in-progress.
 
-## 3. Build the todo list from the first batch
+## 3. Keep the todo list in step with the batch
 
-The batch contains a phase checklist and its actions. Immediately mirror it into
-the todo list from §0 - one item per action, plus one per phase as a heading -
-before executing anything. Then, as you work:
+The batch contains a phase checklist and its actions. Mirror it into the list
+from §0 - one item per action, plus one per phase as a heading - before executing
+anything.
 
-**appqe's run state is the source of truth. The todo list is a view of it, never
-an independent tally.**
+**The panel is the user's only view of the run, and it is never withheld.**
+appqe's run state is the durable *record*; the todo list is the live *display*.
+They answer different questions and neither is subordinate: the record says what
+was accepted, the panel says where you are right now. A correct record behind a
+frozen panel is a run the user cannot see.
 
-- Mark an item **complete only after** its result is accepted by `appqe resume`.
-  Not when you finish thinking about it, not when you write the file - when the
-  orchestrator has the result. Anything else reports work that may not exist.
-- Mark **in-progress** when you start it. Exactly one at a time.
+- **Never delay an update to stay in step with the orchestrator.** Mark the item
+  in-progress when you begin it and completed when the work is done and
+  submitted. If a `resume` later corrects something, correct the list then - a
+  brief disagreement is cheap, a panel that has not moved in ten tool calls is
+  the failure the user actually reports.
+- Exactly one item in-progress at a time.
 - **Reconcile before every reply.** Re-read the latest batch and make the list
   match it: add actions the batch introduced, and never leave an item marked
   in-progress that has already been submitted.
+- **Do not claim an outcome the orchestrator has not accepted.** This is about
+  the *words* in a title - "18 passed" only after you saw them pass. It is never
+  a reason to leave the item unmarked.
 - **Do not restate the count in prose.** The panel renders `Todos (7/12)` itself,
-  from the real list. A number you retype is a number that can disagree with it,
-  and a stale count reads as progress that did not happen.
-- If the list and appqe disagree, appqe wins. Fix the list, say you corrected
-  it, and carry on.
+  from the real list. A number you retype is a number that can disagree with it.
+- If the list and appqe disagree on *facts*, appqe wins. Fix the list, say you
+  corrected it, and carry on.
 
 ## 4. Execute each action
 
@@ -373,4 +380,4 @@ operations against production - the sanctioned targets are exactly:
 (Token JWT (Authorization: Token <jwt>)). These are enforced by hooks; treat a block as a real
 finding, not an obstacle to route around.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

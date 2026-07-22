@@ -17,4 +17,4 @@ then execute each phase and `appqe resume` with results.
 - Verify the root cause with evidence; run a challenge step to disprove it.
 - Deliver a verdict + recommended fix; update the discovery log.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

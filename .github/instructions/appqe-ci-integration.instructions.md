@@ -31,4 +31,4 @@ applyTo: '.github/workflows/**'
 
 **Enforced by** nothing automatic - this describes the pipeline you build. `appqe doctor` checks the wiring exists; the steps themselves are yours to add.
 
-<!-- appqe:managed | do-not-edit-manually -->
+<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->
