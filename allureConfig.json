@@ -1,9 +1,5 @@
 {
   "allure": {
-    "directory": "allure-results",
-    "links": [
-      { "type": "issue", "urlTemplate": "https://github.com/gothinkster/realworld/issues/{}" },
-      { "type": "tms", "urlTemplate": "https://conduit-qe.atlassian.net/browse/{}" }
-    ]
+    "directory": "allure-results"
   }
 }

@@ -1,0 +1,129 @@
+# API QE pipeline.
+#
+# This is the file whose absence made every appqe standard advisory: the
+# instructions describe a lint step, a coverage gate and a fail-on-failure test
+# run, and until this workflow existed none of them ran on a pull request.
+name: API tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Non-production target. Production is blocked by security.allow_prod: false
+  # in appqe.yml, and the guard refuses a prod host regardless of this value.
+  BASE_URL: https://api.realworld.show/api
+  DOTNET_NOLOGO: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
+jobs:
+  guardrails:
+    name: Guardrails (secrets, prod URLs, TLS, assertion standards)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install appqe
+        run: pip install --quiet git+https://github.com/${{ github.repository_owner }}/appqe.git
+
+      # Blocking: a hardcoded secret, a production URL, disabled TLS, or a
+      # status assertion that accepts more than one code fails the build here
+      # rather than reaching a reviewer.
+      - name: Guardrail lint
+        run: appqe lint tests utils
+
+      # Non-blocking for now: the assertion-standard warnings (missing status
+      # assertion, null-only assertions, absent schema validation) are a ratchet.
+      # Tracked in CONDUIT-305 to become blocking once the backlog is clear.
+      - name: Assertion standards (advisory)
+        continue-on-error: true
+        run: appqe lint tests utils --strict
+
+  test:
+    name: dotnet test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # Fail the build on any test failure. A quarantined test is skipped by an
+      # explicit [Fact(Skip = ...)] naming its tracked bug - never by a blanket
+      # retry, which would hide a real failure.
+      - name: Test
+        run: >
+          dotnet test --no-build --configuration Release
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+          --settings coverlet.runsettings
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            TestResults/
+            allure-results/
+          retention-days: 14
+
+  coverage:
+    name: Endpoint coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install appqe
+        run: pip install --quiet git+https://github.com/${{ github.repository_owner }}/appqe.git
+
+      # BLOCKING, and adoptable from day one. The 80% threshold in appqe.yml is
+      # the target; `.appqe/coverage-baseline.json` is what CI enforces. A PR
+      # that covers less than the committed baseline - a deleted test, a status
+      # assertion dropped - fails here. An absolute gate could not do this job:
+      # measured coverage is 0/19 covered today, so a threshold gate would be
+      # red on every PR and would simply be switched off.
+      #
+      # Raising the baseline is deliberate and reviewable:
+      #   appqe coverage --kind api --accept-baseline   (then commit the diff)
+      - name: Endpoint coverage must not regress
+        run: appqe coverage --kind api --check-baseline --detail
+
+      # Reported, not enforced: the distance still to travel (CONDUIT-304).
+      - name: Progress against the 80% target
+        if: always()
+        continue-on-error: true
+        run: appqe coverage --kind api
+
+      - name: Coverage report (JSON artifact)
+        if: always()
+        continue-on-error: true
+        run: appqe coverage --kind api --json > coverage-report.json
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: endpoint-coverage
+          path: coverage-report.json
+          retention-days: 14

@@ -7,6 +7,7 @@
 project_name: conduit-api-qe
 client_name: "RealWorld Conduit"
 
+scope: api                     # API-only: no UI content is deployed
 profile: openapi_xunit         # API tests generated as .NET xUnit (C#)
 api_language: "C#"
 
@@ -21,7 +22,16 @@ tracker:
   project_key: CONDUIT
 
 api_test_runner: dotnet test
-default_platform: claude-cli
+default_platform: copilot       # names the AGENT, not the editor
+
+# Model tiers - defaults shown; tune per project.
+models:
+  coordinator: sonnet            # drives the loop, holds the run context
+  tiers:                       # workers take a tier from the step's complexity
+    light: haiku
+    standard: sonnet
+    deep: sonnet
+  workers: {}                  # per-role override, e.g. spec_survey: haiku
 
 security:
   allow_prod: false
@@ -32,6 +42,8 @@ security:
     - production
     - live
   allowed_commands:
+    - appqe      # the orchestrator's own CLI - without this the guard blocks the run loop
+    - mkdir
     - dotnet
     - nswag
     - allure
@@ -40,12 +52,14 @@ security:
 quality:
   min_endpoint_coverage: 0.8
   self_review_iterations: 2
+  flaky_reruns: 3              # re-runs used to classify a failure as flaky
 
 intents:
   - mode: bug_retest
     pattern: verify the fix for CONDUIT-\d+
     confidence: 0.95
 
-gates:
-  generation_review:
-    auto_approve: true
+# No gate is auto-approved. generation_review previously was, which silently
+# disabled the review the agent instructions call non-optional - tests reached
+# "final" without anyone reading them.
+gates: {}

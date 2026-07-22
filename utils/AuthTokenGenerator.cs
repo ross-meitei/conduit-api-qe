@@ -14,8 +14,10 @@ public static class AuthTokenGenerator
     [AllureStep("Generate auth token")]
     public static async Task<string> GenerateAuthToken()
     {
-        var baseUrl = Environment.GetEnvironmentVariable("BASE_URL")
-                      ?? throw new InvalidOperationException("BASE_URL is not set.");
+        // Trailing slash + relative request URIs, or HttpClient resolves the
+        // path away and every call lands on the wrong host path (see
+        // ApiClientFactory.ResolveBaseAddress).
+        var baseUrl = ApiClientFactory.ResolveBaseAddress();
         using var http = new HttpClient { BaseAddress = new Uri(baseUrl, UriKind.Absolute) };
 
         var email = Environment.GetEnvironmentVariable("TEST_EMAIL");
@@ -27,7 +29,7 @@ public static class AuthTokenGenerator
         }
 
         var payload = new { user = new { email, password } };
-        var response = await http.PostAsJsonAsync("/users/login", payload);
+        var response = await http.PostAsJsonAsync("users/login", payload);
         response.EnsureSuccessStatusCode();
         return ExtractToken(await response.Content.ReadAsStringAsync());
     }
@@ -44,7 +46,7 @@ public static class AuthTokenGenerator
                 password = $"Pw!{suffix}",
             },
         };
-        var response = await http.PostAsJsonAsync("/users", payload);
+        var response = await http.PostAsJsonAsync("users", payload);
         response.EnsureSuccessStatusCode();
         return ExtractToken(await response.Content.ReadAsStringAsync());
     }

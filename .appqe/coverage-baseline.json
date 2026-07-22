@@ -1,0 +1,105 @@
+{
+  "operations": {
+    "DELETE /articles/{slug}": {
+      "asserted": [
+        204
+      ],
+      "state": "partial"
+    },
+    "DELETE /articles/{slug}/comments/{id}": {
+      "asserted": [],
+      "state": "uncovered"
+    },
+    "DELETE /articles/{slug}/favorite": {
+      "asserted": [
+        200
+      ],
+      "state": "partial"
+    },
+    "DELETE /profiles/{username}/follow": {
+      "asserted": [],
+      "state": "partial"
+    },
+    "GET /articles": {
+      "asserted": [
+        200
+      ],
+      "state": "partial"
+    },
+    "GET /articles/feed": {
+      "asserted": [],
+      "state": "uncovered"
+    },
+    "GET /articles/{slug}": {
+      "asserted": [
+        404
+      ],
+      "state": "partial"
+    },
+    "GET /articles/{slug}/comments": {
+      "asserted": [],
+      "state": "uncovered"
+    },
+    "GET /profiles/{username}": {
+      "asserted": [
+        200,
+        404
+      ],
+      "state": "partial"
+    },
+    "GET /tags": {
+      "asserted": [
+        200
+      ],
+      "state": "partial"
+    },
+    "GET /user": {
+      "asserted": [],
+      "state": "uncovered"
+    },
+    "POST /articles": {
+      "asserted": [
+        201,
+        401
+      ],
+      "state": "partial"
+    },
+    "POST /articles/{slug}/comments": {
+      "asserted": [],
+      "state": "uncovered"
+    },
+    "POST /articles/{slug}/favorite": {
+      "asserted": [
+        200
+      ],
+      "state": "partial"
+    },
+    "POST /profiles/{username}/follow": {
+      "asserted": [],
+      "state": "partial"
+    },
+    "POST /users": {
+      "asserted": [],
+      "state": "partial"
+    },
+    "POST /users/login": {
+      "asserted": [],
+      "state": "uncovered"
+    },
+    "PUT /articles/{slug}": {
+      "asserted": [],
+      "state": "uncovered"
+    },
+    "PUT /user": {
+      "asserted": [],
+      "state": "uncovered"
+    }
+  },
+  "totals": {
+    "covered": 0,
+    "partial": 11,
+    "total": 19,
+    "uncovered": 8
+  },
+  "version": 2
+}

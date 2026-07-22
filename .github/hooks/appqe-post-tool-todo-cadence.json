@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "./.github/hooks/scripts/appqe-todo-cadence.sh",
+        "timeout": 15,
+        "windows": "powershell -File ./.github/hooks/scripts/appqe-todo-cadence.ps1"
+      }
+    ]
+  }
+}

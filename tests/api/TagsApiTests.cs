@@ -2,55 +2,65 @@ using System.Net;
 using ConduitApiClientNamespace;
 using FluentAssertions;
 using Integration.Tests.utils;
-using Allure.Net.Commons;
 using AllureBeforeAttribute = Allure.Xunit.Attributes.Steps.AllureBeforeAttribute;
 
 namespace Integration.Tests.API;
 
-// GET /tags is public; the generated client deserializes the TagsResponse schema.
 [AllureParentSuite("Tags")]
 [Collection("Allure History Collection")]
 public class TagsApiTests : IDisposable
 {
-    private readonly ConduitApiClient _client;
+    private readonly HttpClient _raw;
 
     [AllureBefore("Set up API client")]
     public TagsApiTests()
     {
-        _client = ApiClientFactory.CreateConduitApiClient();
+        _raw = ApiClientFactory.CreateRawClient();
         AllureReportUtils.ClearRecordedExceptions();
     }
 
-    public void Dispose() => AllureReportUtils.ThrowRecordedExceptions();
-
-    [Trait("API", "Tags")]
-    [Fact(DisplayName = "GET /tags returns a non-null list of string tags")]
-    [AllureFeature("List Tags")]
-    [AllureDescription("Given the site has tags, When GET /tags, Then a list of string tags is returned.")]
-    public async Task GetTags_ReturnsStringList()
+    public void Dispose()
     {
-        TagsResponse? response = null;
-        await AllureApi.Step("When fetching tags", async () =>
-        {
-            response = await _client.GetTagsAsync();
-        });
-
-        AllureReportUtils.LogAndAssert(response, r => r.Should().NotBeNull(), "Response is not null.");
-        AllureReportUtils.LogAndAssert(response!.Tags, t => t.Should().NotBeNull(), "Tags collection exists.");
-        response.Tags.Should().OnlyContain(tag => !string.IsNullOrWhiteSpace(tag));
+        _raw.Dispose();
+        AllureReportUtils.ThrowRecordedExceptions();
     }
 
     [Trait("API", "Tags")]
-    [Fact(DisplayName = "GET /tags is public and returns HTTP 200 without auth")]
+    [Fact(DisplayName = "GET /tags returns 200 and a TagsResponse of non-empty strings")]
+    [AllureFeature("List Tags")]
+    [AllureDescription("Given the site has tags, When GET /tags, Then 200 + TagsResponse.")]
+    public async Task GetTags_Returns200AndTagsSchema()
+    {
+        var response = await _raw.GetAsync("tags");
+        var body = await response.Content.ReadAsStringAsync();
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for GET /tags"),
+            "GET /tags returns the documented 200.");
+        AllureReportUtils.LogAndAssert(body,
+            b => SchemaValidator.AssertMatches(b, "TagsResponse", "GET /tags happy path"),
+            "Body matches the TagsResponse schema.");
+
+        var tags = (await response.Content.ReadFromJsonAsync<TagsResponse>())!.Tags;
+        AllureReportUtils.LogAndAssert(tags,
+            t => t.Should().OnlyContain(tag => !string.IsNullOrWhiteSpace(tag),
+                "a blank tag is not a usable tag"),
+            "Every tag is a non-empty string.");
+    }
+
+    [Trait("API", "Tags")]
+    [Fact(DisplayName = "GET /tags is public and returns 200 without auth")]
     [AllureFeature("List Tags")]
     [AllureDescription("Given no token, When GET /tags, Then the documented 200 status is returned.")]
-    public async Task GetTags_IsPubliclyAccessible_Returns200()
+    public async Task GetTags_NoAuth_Returns200()
     {
-        var baseUrl = Environment.GetEnvironmentVariable("BASE_URL") ?? "https://api.realworld.show/api";
-        using var anon = new HttpClient { BaseAddress = new Uri(baseUrl, UriKind.Absolute) };
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
 
-        var response = await anon.GetAsync("/tags");
+        var response = await anon.GetAsync("tags");
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.OK,
+                "GET /tags carries no security requirement in the spec"),
+            "Unauthenticated GET /tags returns 200.");
     }
 }

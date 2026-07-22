@@ -9,8 +9,10 @@ TestResults/
 allure-results/
 allure-report/
 
-# appqe runtime
-.appqe/
+# appqe runtime state (written under .appqe/ whichever host is configured;
+# managed content lives in .github/ for the vscode host and is committed)
+.appqe/runs/
+.appqe/telemetry/
 
 # Local env / secrets
 .env

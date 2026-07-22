@@ -41,10 +41,35 @@ Allure results land in `allure-results/`; generate a report with the Allure CLI.
 ## appqe checks (from the appqe repo)
 
 ```bash
-appqe --project-root . openapi                          # endpoint inventory (19 ops)
-appqe --project-root . lint tests                       # static guardrail/quality gate
-appqe --project-root . coverage --covered 19 --total 19 # endpoint coverage
+appqe --project-root . openapi                # endpoint inventory (19 ops)
+appqe --project-root . lint tests utils       # guardrails (blocking)
+appqe --project-root . lint tests utils --strict   # + assertion standards (advisory)
+appqe --project-root . coverage --kind api --detail  # measured endpoint coverage
 ```
 
+Coverage is **measured** from the spec and the test sources - it is not a number
+passed on the command line. The README previously advertised
+`coverage --covered 19 --total 19`, which reported 100% because both figures were
+typed in by the caller; a threshold gate whose inputs are asserted rather than
+measured cannot fail.
+
+### Where coverage actually stands
+
+```
+api coverage 0/19 = 0% (threshold 80%) [measured]
+covered 0, partial 11, uncovered 8
+```
+
+An operation counts as **covered** only with a happy path, a documented error
+case, and an auth case where it is secured. Eleven operations are exercised but
+incomplete; eight - `PUT /user`, `GET /articles/feed`, `PUT /articles/{slug}`,
+and the three comments operations among them - have no test at all. Closing this
+is tracked as CONDUIT-304, and the CI coverage step is staged (reporting, not
+blocking) until it is.
+
+The suite itself is green: **10 passing, 1 quarantined** (`CONDUIT-301`, the
+follow flow, which this backend cannot support - see the discovery log).
+
 Guardrails allow the demo host and block production; no secret, token, or
-production URL is hardcoded (credentials come from env / a runtime login).
+production URL is hardcoded, and TLS verification is left at the platform
+default (credentials come from env / a runtime login).

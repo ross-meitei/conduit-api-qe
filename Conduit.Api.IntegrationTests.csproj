@@ -16,17 +16,13 @@
   <!-- Typed client generated from the OpenAPI spec at build time (NSwag).
        Mirrors nswag.json; output is git-ignored and regenerated. -->
   <ItemGroup>
-    <OpenApiReference Include="specs/openapi.json"
-                      CodeGenerator="NSwagCSharp"
-                      ClassName="ConduitApiClient"
-                      Namespace="ConduitApiClientNamespace"
-                      OutputPath="generated-client/ConduitApiClient.cs">
+    <OpenApiReference Include="specs/openapi.json" CodeGenerator="NSwagCSharp" ClassName="ConduitApiClient" Namespace="ConduitApiClientNamespace" OutputPath="generated-client/ConduitApiClient.cs">
       <Options>/generateClientClasses:true /generateDtoTypes:true /injectHttpClient:true /operationGenerationMode:SingleClientFromOperationId</Options>
     </OpenApiReference>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Allure.Xunit" Version="2.12.1" />
+    <PackageReference Include="Allure.Xunit" Version="2.14.1" />
     <PackageReference Include="Bogus" Version="35.6.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
@@ -38,7 +34,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NJsonSchema" Version="11.1.0" />
     <PackageReference Include="NSwag.ApiDescription.Client" Version="14.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
