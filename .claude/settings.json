@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet --info)",
+      "Bash(nswag run:*)",
+      "Bash(appqe openapi:*)",
+      "Bash(appqe lint:*)",
+      "Bash(appqe coverage:*)",
+      "Bash(appqe contract:*)",
+      "Bash(appqe discovery:*)",
+      "Bash(appqe doctor)",
+      "Bash(appqe --version)",
+      "Bash(allure:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
