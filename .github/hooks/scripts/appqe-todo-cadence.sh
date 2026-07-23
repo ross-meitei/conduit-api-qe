@@ -48,5 +48,8 @@ n="$(wc -c < "$counter" 2>/dev/null | tr -d ' ')"
 [ "$n" -ge "$THRESHOLD" ] 2>/dev/null || exit 0
 
 : > "$counter" 2>/dev/null || true
-printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"appqe: the todo list has not been updated in %s tool calls. Update it before your next action - mark what just finished as completed and the next step as in-progress in the same call, and enrich the finished item title with what you learned. The panel renders where the most recent update happened, so a list left untouched scrolls out of view and shows the user stale state."}}\n' "$n"
+# Plain text on stdout, exit 0. The hook descriptor declares
+# response=additionalContext, which is what makes this reach the model; a JSON
+# envelope here is treated as literal text, and exit 2 would block the call.
+printf 'appqe: the todo list has not been updated in %s tool calls. Update it before your next action - mark what just finished as completed and the next step as in-progress in the same call, and put what you learned in the finished item title. The panel renders where the most recent update happened, so a list left untouched scrolls out of view and shows the user stale state.\n' "$n"
 exit 0

@@ -20,4 +20,5 @@ allure-report/
 .appqe/telemetry/
 .appqe/.session/
 .git/appqe/
-# /appqe
+.claude
+.appqe

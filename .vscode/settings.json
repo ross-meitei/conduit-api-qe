@@ -1,4 +1,3 @@
 {
-  "chat.todoListTool.enabled": true,
-  "chat.useCustomAgentHooks": true
+  "chat.tools.todos.showWidget": true
 }

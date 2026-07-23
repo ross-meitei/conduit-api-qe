@@ -6,7 +6,7 @@ new one whenever a run learns something a future run should apply.
 ## Rules in force
 
 <!-- appqe:rules -->
-- **ALLURE-XUNIT-VERSION-INCOMPATIBILITY** — Allure.Xunit 2.12.1 + Allure.Net.Commons 2.12.1 could not parse allureConfig.json with "links" as array of objects. Fixed by: (1) upgrading to Allure.Xunit 2.14.1, (2) updating Newtonsoft.Json to 13.0.4, (3) removing malformed "links" array from config. Now tests discover and run successfully. (Status: RESOLVED | Cause: Schema mismatch in Allure.Net.Commons JSON deserializer | Solution: Simplified allureConfig.json)
+_No rules recorded yet. The first run to learn something durable adds one._
 <!-- /appqe:rules -->
 
 ## Findings

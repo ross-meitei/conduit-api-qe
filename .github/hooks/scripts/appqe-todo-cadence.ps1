@@ -39,6 +39,7 @@ $msg = "appqe: the todo list has not been updated in $n tool calls. Update it " 
   "with what you learned. The panel renders where the most recent update " +
   "happened, so a list left untouched scrolls out of view and shows the user " +
   "stale state."
-$out = @{ hookSpecificOutput = @{ hookEventName = "PostToolUse"; additionalContext = $msg } }
-$out | ConvertTo-Json -Compress -Depth 5
+# Plain text on stdout, exit 0 - the descriptor's response=additionalContext is
+# what carries it to the model. A JSON envelope here is treated as literal text.
+Write-Output $msg
 exit 0
