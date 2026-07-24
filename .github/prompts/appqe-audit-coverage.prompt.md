@@ -2,8 +2,6 @@
 description: 'Audit API/UI test coverage against the spec and app, and report prioritized gaps.'
 agent: appqe-agent
 ---
-**Keep the todo list live.** Seed it before your first action and update it at every step transition - see *Todo visibility protocol* in the agent. Seeding once and moving on is the failure this is here to prevent.
-
 Audit test coverage for **conduit-api-qe**.
 
 Drive it through the orchestrator: `appqe start "audit coverage"`, then execute

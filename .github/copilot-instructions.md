@@ -36,23 +36,48 @@ API tests: **xUnit** (C#) in `tests/api`, run with
 Guardrail hooks enforce the first two. A block is a real finding - report it,
 never route around it.
 
-## Show progress in the task list, not in prose
+## Show where the run stands, every time it moves
 
-Any request here that takes more than one action gets a task list, created with
-your host's todo tool **before** the first action and updated **at every step**:
-mark what finished as completed and the next step as in-progress in the same
-call, and carry what you learned in the finished item's title.
+Any multi-step request here reports status first, as a heading plus a callout -
+never as prose. The user must be able to answer three questions without reading
+a paragraph: what is **done**, what is happening **now**, what is **next**.
 
-Two failure modes, both common:
+```markdown
+## ▶ GENERATION · Step 4 of 10 — Draft test plan
+`<run_id>` · 3 done · 6 to go
 
-- **Creating it once.** The panel renders where the most recent update happened,
-  so a list that is seeded and then left alone scrolls out of view and shows the
-  user stale state for the rest of the run. If several actions have passed with
-  no update, the panel is already behind you.
-- **Printing it instead.** Writing the checklist into your reply as markdown does
-  not create the panel - only the tool call does. A written copy is noise the
-  user reads twice and it is stale immediately. Say in one sentence what you are
-  starting; let the panel carry the rest.
+1. ✓ Review discovery rules — 0 rules
+2. ✓ Start run
+3. ✓ Endpoint inventory — **19 operations**, 6 untested
+4. ▶ **Draft test plan**
+5. ⏸ GATE: test-plan approval
+6. ○ Generate tests
+   … every remaining step, in order
+```
+
+**List every step, every time the run advances.** Each `appqe start`/`resume`
+returns a fresh block; paste every one of them, in order, so the user watches
+steps flip to `✓` as they settle. Showing only the last one is how a run appears
+to jump from step 1 straight to step 6. "Step 4 of 10" also tells the user where
+they are but not what the 10 are. Completed steps carry their **findings**, not their
+labels - "Endpoint inventory — 19 operations, 6 untested" is tracking,
+"Endpoint inventory" is not. A paused run says so in the heading (`⏸`) so it
+never looks like a running one. Never reuse a `run_id` from an example or an
+earlier run.
+
+Below the status block, add a section under its own heading only when there is
+news - a finding, a gate, a blocker, a completed run. Two failure modes:
+
+- **Narrating the walk.** "Now reading the spec", "submitting and advancing" -
+  the status block already said it, better.
+- **Burying the result.** Open with the result in one bolded line. Anything
+  long - inventories, per-test rationale, tool output - does not belong in the
+  reply at all: put it in the artifact file and open it with `appqe open`.
+  `<details>` does not work here; this host prints the raw tags as text.
+- **Chrome you paid for.** Every command is a row in the transcript. Never
+  `cd` (use `appqe --project-root`), never re-list a file you just wrote, and
+  let `appqe start` report discovery rules and awaiting runs rather than
+  running those as separate commands.
 
 ## Working here
 

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>appqe telemetry - conduit-api-qe</title>
+<style>
+:root { color-scheme: light; --surface:#fcfcfb; --card:#ffffff; --line:#e6e5e1;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#78766f; --series:#2a78d6;
+  --good:#0ca30c; --critical:#d03b3b; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) {
+  color-scheme: dark; --surface:#1a1a19; --card:#232322; --line:#3a3a37;
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#96958c; --series:#3987e5; } }
+:root[data-theme="dark"] { color-scheme: dark; --surface:#1a1a19; --card:#232322;
+  --line:#3a3a37; --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#96958c; --series:#3987e5; }
+* { box-sizing:border-box; }
+body { margin:0; padding:32px 24px; background:var(--surface); color:var(--ink);
+  font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif; }
+.wrap { max-width:1000px; margin:0 auto; }
+h1 { font-size:20px; margin:0 0 4px; letter-spacing:-.01em; }
+.sub { color:var(--ink-3); font-size:13px; margin:0 0 28px; }
+h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--ink-2); margin:32px 0 12px; font-weight:600; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.tile { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+.tile .n { font-size:28px; font-weight:650; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; }
+.tile .l { color:var(--ink-3); font-size:12px; margin-top:2px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:0; }
+.ess-title { font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--ink-2); font-weight:600; padding:14px 16px 0; }
+.ess-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:0; padding:12px 16px 16px; }
+.ess-item dt { color:var(--ink-3); font-size:12px; margin:0 0 2px; }
+.ess-item dd { margin:0; font-size:14px; font-weight:600; }
+.ess-item dd.mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px; font-weight:500; }
+.scroll { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th { text-align:left; font-weight:600; color:var(--ink-2); font-size:12px;
+  text-transform:uppercase; letter-spacing:.05em; padding:0 12px 8px 0;
+  border-bottom:1px solid var(--line); white-space:nowrap; }
+td { padding:9px 12px 9px 0; border-bottom:1px solid var(--line);
+  font-variant-numeric:tabular-nums; }
+td.run { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
+.status { display:inline-flex; align-items:center; gap:6px; font-weight:600; font-size:13px; }
+.ok { color:var(--good); } .no { color:var(--critical); }
+.bars { display:grid; gap:2px; }
+.bar { display:grid; grid-template-columns:190px 1fr auto; align-items:center; gap:12px; }
+.bar .k { color:var(--ink-2); font-size:13px; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.bar .t { height:14px; background:var(--series); border-radius:0 4px 4px 0; min-width:2px; }
+.bar .v { color:var(--ink-2); font-size:13px; font-variant-numeric:tabular-nums; }
+.empty { color:var(--ink-3); font-style:italic; }
+footer { margin-top:36px; color:var(--ink-3); font-size:12px;
+  border-top:1px solid var(--line); padding-top:14px; }
+</style></head><body><div class="wrap">
+<h1>appqe telemetry - conduit-api-qe</h1>
+<p class="sub">Generated 2026-07-24 18:34 UTC from local run telemetry. Nothing left this machine.</p>
+<h2>Overview</h2><div class="tiles"><div class="tile"><div class="n">3</div><div class="l">runs</div></div><div class="tile"><div class="n">2/3</div><div class="l">completed</div></div><div class="tile"><div class="n">34</div><div class="l">events</div></div><div class="tile"><div class="n">3</div><div class="l">approval gates</div></div><div class="tile"><div class="n">0</div><div class="l">tokens in</div></div><div class="tile"><div class="n">0</div><div class="l">tokens out</div></div></div>
+<h2>Configuration</h2><section class="card"><div class="ess-title">Essentials</div><div class="ess-grid"><div class="ess-item"><dt>Coordinator</dt><dd class="mono">sonnet (Claude Sonnet 4.6)</dd></div><div class="ess-item"><dt>Worker - light</dt><dd class="mono">haiku</dd></div><div class="ess-item"><dt>Worker - standard</dt><dd class="mono">sonnet</dd></div><div class="ess-item"><dt>Worker - deep</dt><dd class="mono">sonnet</dd></div></div></section>
+<h2>Runs</h2><div class="scroll"><table><thead><tr><th>Run</th><th>Status</th><th>Events</th><th>Gates</th><th>Tokens in</th><th>Tokens out</th></tr></thead><tbody><tr><td class="run">qe-2b92e2d48924</td><td><span class="status ok">&#10003; complete</span></td><td>15</td><td>2</td><td>0</td><td>0</td></tr><tr><td class="run">qe-8143d434d010</td><td><span class="status ok">&#10003; complete</span></td><td>6</td><td>0</td><td>0</td><td>0</td></tr><tr><td class="run">qe-8350452bca95</td><td><span class="status no">&#10007; incomplete</span></td><td>13</td><td>1</td><td>0</td><td>0</td></tr></tbody></table></div>
+<h2>Events by kind</h2><div class="bars"><div class="bar"><div class="k" title="phase_completed">phase_completed</div><div><div class="t" style="width:100%"></div></div><div class="v">18</div></div><div class="bar"><div class="k" title="workflow_started">workflow_started</div><div><div class="t" style="width:17%"></div></div><div class="v">3</div></div><div class="bar"><div class="k" title="gate_requested">gate_requested</div><div><div class="t" style="width:17%"></div></div><div class="v">3</div></div><div class="bar"><div class="k" title="gate_approved">gate_approved</div><div><div class="t" style="width:17%"></div></div><div class="v">3</div></div><div class="bar"><div class="k" title="evidence_rejected">evidence_rejected</div><div><div class="t" style="width:17%"></div></div><div class="v">3</div></div><div class="bar"><div class="k" title="phase_failed">phase_failed</div><div><div class="t" style="width:11%"></div></div><div class="v">2</div></div><div class="bar"><div class="k" title="workflow_completed">workflow_completed</div><div><div class="t" style="width:11%"></div></div><div class="v">2</div></div></div>
+<footer>Source: <code>appqe/telemetry/*.jsonl</code> &middot;
+Regenerate with <code>appqe dashboard</code></footer>
+</div></body></html>

@@ -11,7 +11,7 @@ mandatory to the business, or that the team agreed a 30-second retry window on a
 wiki page two sprints ago. Tests written from the spec alone are correct and
 shallow; that gap is what this skill closes.
 
-No context sources are configured. Generate from the spec alone and say so - do not invent acceptance criteria or business rules.
+Context sources available: jira: `utilities/jira_client.py`. Not configured (do not guess at their contents): confluence, sharepoint. Quote what you find and cite the source; never paraphrase an acceptance criterion into an assertion without the reference.
 
 ## Reading the bindings
 
@@ -25,6 +25,34 @@ resolve.
 
 appqe never calls these systems itself. You fetch; it only names the binding, so
 no client credential passes through the framework.
+
+## Setting a source up (when one is asked for but not yet wired)
+
+If the user wants a source this project does not have yet, wire it - do not ask
+them to. For a system appqe ships a starter for (Jira today):
+
+1. **Scaffold the client**: `appqe scaffold --tool jira` writes
+   `utilities/jira_client.py` and prints the remaining steps. `--overwrite`
+   refreshes an existing one.
+2. **Name the non-secret config once, in `appqe.yml`.** For Jira that is
+   `tracker.base_url` (the host) and `tracker.project_key` (the default
+   project). Shared and committed - never a per-developer setting.
+3. **Credentials go in `env/.env`** (git-ignored), never in `appqe.yml` - a
+   committed token is a published token, and the pre-tool guard blocks a literal
+   secret in an edit regardless. Jira needs `JIRA_EMAIL` and `JIRA_API_TOKEN`.
+4. **Discover, do not declare.** Anything that varies per instance the client
+   works out for itself - the Jira acceptance-criteria field id is found by name
+   from the instance's own metadata. Do not add a config key for it, and do not
+   hardcode `customfield_XXXXX`; if discovery is ever wrong, `JIRA_AC_FIELD`
+   forces one, but that is a last resort, not part of setup.
+5. **Verify before relying on it**: run the client against one real item
+   (`python utilities/jira_client.py <issue-key>`) and confirm fields come back.
+   `appqe doctor` confirms the binding resolves. A source that "should work" but
+   was never called once is how a run quotes an empty acceptance criterion.
+
+A system appqe ships no starter for is wired the same way at the config level:
+point `tools.<name>` at your own script or an `mcp:` tool - nothing to scaffold,
+nothing more to declare.
 
 ## The rule that matters
 

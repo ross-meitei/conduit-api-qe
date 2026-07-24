@@ -2,8 +2,6 @@
 description: 'Check existing tests against the current OpenAPI spec for contract drift.'
 agent: appqe-agent
 ---
-**Keep the todo list live.** Seed it before your first action and update it at every step transition - see *Todo visibility protocol* in the agent. Seeding once and moving on is the failure this is here to prevent.
-
 Check contract drift for **conduit-api-qe**.
 
 Drive it through the orchestrator: `appqe start "check contract drift against the

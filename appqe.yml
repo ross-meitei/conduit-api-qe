@@ -17,9 +17,33 @@ api:
   tests_dir: tests/api
   auth_scheme: "Token JWT (Authorization: Token <jwt>)"
 
+# ── Jira ──────────────────────────────────────────────────────────────
+# Everything Jira lives here, in one block, so there is one place to read and
+# one place to change. The split is by nature, not by whim:
+#
+#   • host + project    -> config (below). Non-secret, shared by the whole team,
+#                          committed once. utilities/jira_client.py reads them
+#                          straight from this file.
+#   • the API token     -> environment only (JIRA_EMAIL + JIRA_API_TOKEN in
+#                          env/.env, git-ignored). A committed token is a
+#                          published token, and the pre-tool guardrail blocks a
+#                          literal secret in an edit regardless.
+#
+# So a developer sets two env vars and nothing else; the host and project are
+# already correct. Token: id.atlassian.com/manage-profile/security/api-tokens
+
 tracker:
-  base_url: https://conduit-qe.atlassian.net
-  project_key: CONDUIT
+  base_url: https://slalom.atlassian.net     # Jira host (read by jira_client.py)
+  project_key: QEBS                          # default project - bare `123` -> QEBS-123
+  # Nothing else to declare: the acceptance-criteria field id varies per Jira
+  # instance, so the client discovers it by name from the instance itself.
+
+tools:
+  jira: utilities/jira_client.py             # appqe names it; the agent runs it
+  # confluence: mcp:atlassian/getConfluencePage
+  # sharepoint: mcp:sharepoint/getFile
+  # Any other key is kept and exposed as {{tools.<name>}}, so a system appqe has
+  # never heard of can be wired without forking it.
 
 api_test_runner: dotnet test
 default_platform: copilot       # names the AGENT, not the editor

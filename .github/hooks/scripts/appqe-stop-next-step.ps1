@@ -19,7 +19,7 @@ if ($appqe) { $stalled = (& $appqe list --incomplete 2>$null | Select-Object -Fi
 if ($stalled) {
   [Console]::Error.WriteLine("appqe: do not end here - these runs never completed:")
   [Console]::Error.WriteLine($stalled)
-  [Console]::Error.WriteLine("Offer to resume one (appqe status <run_id>), or say plainly that the run is being abandoned and what is therefore unverified. Then ask a structured next-step question with concrete options, plus 'Done for now' and 'Something else'.")
+  [Console]::Error.WriteLine("For each: resume it (appqe resume <run_id> ...), or if it will not be finished, close it on the record with 'appqe abandon <run_id> --reason ""..."" ' (--all clears every one) and say what is therefore unverified. A run left dangling keeps tripping this check. Then ask a structured next-step question with concrete options, plus 'Done for now' and 'Something else'.")
   exit 2
 }
 [Console]::Error.WriteLine("appqe: do not end here. Ask the user a structured next-step question first - concrete options from the current run state, plus 'Done for now' and 'Something else'.")

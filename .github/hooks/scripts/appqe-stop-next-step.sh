@@ -31,9 +31,11 @@ fi
 if [ -n "$stalled" ]; then
   echo "appqe: do not end here - these runs never completed:" >&2
   echo "$stalled" >&2
-  echo "Offer to resume one (appqe status <run_id>), or say plainly that the run is \
-being abandoned and what is therefore unverified. Then ask a structured next-step \
-question with concrete options, plus 'Done for now' and 'Something else'." >&2
+  echo "For each: resume it (appqe resume <run_id> ...), or if it will not be \
+finished, close it on the record with 'appqe abandon <run_id> --reason \"...\"' \
+(--all clears every one) and say what is therefore unverified. A run left dangling \
+keeps tripping this check. Then ask a structured next-step question with concrete \
+options, plus 'Done for now' and 'Something else'." >&2
   exit 2
 fi
 echo "appqe: do not end here. Ask the user a structured next-step question first \

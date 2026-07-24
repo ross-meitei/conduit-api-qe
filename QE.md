@@ -23,21 +23,6 @@ appqe doctor                     # verifies wiring in this project
 reports whether the CLI resolves, the config and spec load, the hooks are wired
 for this host, and whether a coverage baseline exists.
 
-### The live todo panel (VS Code / Copilot)
-
-The agent tracks progress in VS Code's native **task-list widget** at the top of
-the Chat view. One setting makes it render, off by default and written into
-`.vscode/settings.json` by `appqe sync`:
-
-- `chat.tools.todos.showWidget` - shows the task-list widget (VS Code 1.130 /
-  Copilot Chat 0.58). Without it there is no panel and the agent falls back to
-  printing a checklist. The `todo` tool itself is offered by default on 1.130.
-
-**Reload VS Code after the first sync** so the setting takes effect. In a
-multi-root workspace put it at User or `.code-workspace` scope - a per-folder
-`.vscode/settings.json` is the wrong scope for this window-level setting. If the
-panel is not appearing, `appqe doctor` checks it.
-
 ## Using it
 
 Select the **appqe** agent in GitHub Copilot, then describe the QE task.

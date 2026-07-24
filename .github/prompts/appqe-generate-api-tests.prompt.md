@@ -2,8 +2,6 @@
 description: 'Generate API tests from the OpenAPI spec into the project''s stack.'
 agent: appqe-agent
 ---
-**Keep the todo list live.** Seed it before your first action and update it at every step transition - see *Todo visibility protocol* in the agent. Seeding once and moving on is the failure this is here to prevent.
-
 Generate API tests for **conduit-api-qe** from `specs/openapi.json`.
 
 Drive it through the orchestrator: `appqe start "generate api tests from the

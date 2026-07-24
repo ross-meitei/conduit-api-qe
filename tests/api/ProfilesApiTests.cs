@@ -118,6 +118,38 @@ public class ProfilesApiTests : IDisposable
             "Unauthenticated follow returns 401.");
     }
 
+    [Trait("API", "Profiles")]
+    [Fact(DisplayName = "DELETE /profiles/{username}/follow without auth returns 401")]
+    [AllureFeature("Follow")]
+    [AllureDescription("Given no token, When unfollowing a user, Then 401 Unauthorized is returned.")]
+    public async Task UnfollowUser_NoAuth_Returns401()
+    {
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+
+        var response = await anon.DeleteAsync("profiles/someone/follow");
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.Unauthorized,
+                "the spec documents 401 for an unauthenticated unfollow"),
+            "Unauthenticated unfollow returns 401.");
+    }
+
+    [Trait("API", "Profiles")]
+    [Fact(DisplayName = "GET /profiles/{username} without auth returns 401")]
+    [AllureFeature("Get Profile")]
+    [AllureDescription("Given no token, When GET /profiles/{username}, Then 401 Unauthorized is returned.")]
+    public async Task GetProfile_NoAuth_Returns401()
+    {
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+
+        var response = await anon.GetAsync("profiles/someone");
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.Unauthorized,
+                "the spec marks GET /profiles/{username} secured and documents 401 without a token"),
+            "Unauthenticated GET /profiles/{username} returns 401.");
+    }
+
     /// <summary>Register a throwaway user; returns its username and token.</summary>
     private async Task<(string Username, string Token)> RegisterUserAsync()
     {

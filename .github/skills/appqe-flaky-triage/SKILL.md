@@ -34,7 +34,7 @@ The difference tells you the class immediately:
 
 ## Quarantine
 
-Quarantine only with a tracked bug (CONDUIT), an owner, and a
+Quarantine only with a tracked bug (QEBS), an owner, and a
 date. A quarantined test with no bug is a deleted test with extra steps.
 
 Record the cause and the fix in the discovery log - flaky causes recur, and the

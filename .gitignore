@@ -14,11 +14,12 @@ allure-report/
 .env.*
 !.env.example
 
+# Claude Code local settings + session logs
+.claude/
+
 # appqe transient run state (managed)
 .appqe/plans/
 .appqe/runs/
 .appqe/telemetry/
 .appqe/.session/
-.git/appqe/
-.claude
-.appqe
+# /appqe

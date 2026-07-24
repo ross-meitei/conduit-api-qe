@@ -199,4 +199,204 @@ public class ArticlesApiTests : IDisposable
                 "the spec documents 401 for an unauthenticated create"),
             "Unauthenticated POST /articles returns 401.");
     }
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "POST /articles with a missing title returns 422")]
+    [AllureFeature("Create Article")]
+    [AllureDescription("Given a body without a title, When POST /articles, Then 422 + GenericErrorModel naming title.")]
+    public async Task CreateArticle_MissingTitle_Returns422()
+    {
+        var (_, description, body, _) = TestDataFactory.NewArticle();
+
+        // Raw request with the required 'title' omitted. The typed client can't
+        // express this - its NewArticle always carries the property - so the
+        // invalid-body contract is only reachable over a raw request.
+        var response = await _raw.PostAsJsonAsync("articles",
+            new { article = new { description, body } });
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
+                "the spec documents 422 for an invalid create body"),
+            "Missing title returns the documented 422.");
+        AllureReportUtils.LogAndAssert(responseBody,
+            b => SchemaValidator.AssertMatches(b, "GenericErrorModel", "POST /articles error case"),
+            "Error body matches the GenericErrorModel schema.");
+        AllureReportUtils.LogAndAssert(responseBody,
+            b => b.Should().Contain("title", "the error must name the field that failed validation"),
+            "The 422 error names 'title'.");
+    }
+
+    // ── GET /articles/feed ───────────────────────────────────────────────
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "GET /articles/feed returns a bounded, well-formed page")]
+    [AllureFeature("Article Feed")]
+    [AllureDescription("Given an authenticated user, When GET /articles/feed?limit=5, Then 200 + <=5 valid articles.")]
+    public async Task GetFeed_Authenticated_Returns200AndShape()
+    {
+        var response = await _raw.GetAsync("articles/feed?limit=5&offset=0");
+        var body = await response.Content.ReadAsStringAsync();
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for GET /articles/feed"),
+            "GET /articles/feed returns the documented 200.");
+        AllureReportUtils.LogAndAssert(body,
+            // 'body' waived exactly as on GET /articles: the feed reuses the same
+            // list projection that omits the field the spec marks required on
+            // Article (CONDUIT-302). Single-article fetches still enforce it.
+            b => SchemaValidator.AssertMatches(b, "MultipleArticlesResponse",
+                "GET /articles/feed happy path", "body"),
+            "Body matches the MultipleArticlesResponse schema (body waived, CONDUIT-302).");
+
+        var response2 = await _raw.GetAsync("articles/feed?limit=5&offset=0");
+        var page = (await response2.Content.ReadFromJsonAsync<MultipleArticlesResponse>())!;
+        AllureReportUtils.LogAndAssert(page.Articles.Count, c => c.Should().BeLessThanOrEqualTo(5),
+            "Feed respects limit=5.");
+    }
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "GET /articles/feed without auth returns 401")]
+    [AllureFeature("Article Feed")]
+    [AllureDescription("Given no token, When GET /articles/feed, Then 401 Unauthorized is returned.")]
+    public async Task GetFeed_NoAuth_Returns401()
+    {
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+
+        var response = await anon.GetAsync("articles/feed");
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.Unauthorized,
+                "the spec documents 401 for the feed without a token"),
+            "Unauthenticated GET /articles/feed returns 401.");
+    }
+
+    // ── PUT /articles/{slug} ─────────────────────────────────────────────
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "PUT /articles/{slug} updates an owned article and returns 200")]
+    [AllureFeature("Update Article")]
+    [AllureDescription("Given an owned article, When PUT changes its body, Then 200 + the updated SingleArticleResponse.")]
+    public async Task UpdateArticle_OwnArticle_Returns200AndPersistsChange()
+    {
+        var (title, description, body, tags) = TestDataFactory.NewArticle();
+        var created = await _client.CreateArticleAsync(new NewArticleRequest
+        {
+            Article = new NewArticle
+            {
+                Title = title, Description = description, Body = body,
+                TagList = new List<string>(tags),
+            },
+        });
+        var slug = created.Article.Slug;
+        var newBody = $"Updated body {Guid.NewGuid():N}";
+
+        var response = await _raw.PutAsJsonAsync($"articles/{slug}",
+            new { article = new { body = newBody } });
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for PUT /articles/{slug}"),
+            "PUT /articles/{slug} returns the documented 200.");
+        AllureReportUtils.LogAndAssert(responseBody,
+            b => SchemaValidator.AssertMatches(b, "SingleArticleResponse", "PUT /articles/{slug} happy path"),
+            "Body matches the SingleArticleResponse schema.");
+
+        var updated = (await response.Content.ReadFromJsonAsync<SingleArticleResponse>())!.Article;
+        AllureReportUtils.LogAndAssert(updated.Body, b => b.Should().Be(newBody),
+            "The updated body is persisted.");
+
+        await _raw.DeleteAsync($"articles/{slug}");
+    }
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "PUT /articles/{slug} without auth returns 401")]
+    [AllureFeature("Update Article")]
+    [AllureDescription("Given no token, When PUT /articles/{slug}, Then 401 Unauthorized is returned.")]
+    public async Task UpdateArticle_NoAuth_Returns401()
+    {
+        var (title, description, body, tags) = TestDataFactory.NewArticle();
+        var created = await _client.CreateArticleAsync(new NewArticleRequest
+        {
+            Article = new NewArticle
+            {
+                Title = title, Description = description, Body = body,
+                TagList = new List<string>(tags),
+            },
+        });
+        var slug = created.Article.Slug;
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+
+        var response = await anon.PutAsJsonAsync($"articles/{slug}",
+            new { article = new { body = "should not apply" } });
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.Unauthorized,
+                "the spec documents 401 for an unauthenticated update"),
+            "Unauthenticated PUT /articles/{slug} returns 401.");
+
+        await _raw.DeleteAsync($"articles/{slug}");
+    }
+
+    // ── Auth cases for DELETE / favorite / unfavorite ────────────────────
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "DELETE /articles/{slug} without auth returns 401")]
+    [AllureFeature("Delete Article")]
+    [AllureDescription("Given no token, When DELETE /articles/{slug}, Then 401 Unauthorized is returned.")]
+    public async Task DeleteArticle_NoAuth_Returns401()
+    {
+        var (title, description, body, tags) = TestDataFactory.NewArticle();
+        var created = await _client.CreateArticleAsync(new NewArticleRequest
+        {
+            Article = new NewArticle
+            {
+                Title = title, Description = description, Body = body,
+                TagList = new List<string>(tags),
+            },
+        });
+        var slug = created.Article.Slug;
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+
+        var response = await anon.DeleteAsync($"articles/{slug}");
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.Unauthorized,
+                "the spec documents 401 for an unauthenticated delete"),
+            "Unauthenticated DELETE /articles/{slug} returns 401.");
+
+        await _raw.DeleteAsync($"articles/{slug}");
+    }
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "POST /articles/{slug}/favorite without auth returns 401")]
+    [AllureFeature("Favorite Article")]
+    [AllureDescription("Given no token, When favoriting an article, Then 401 Unauthorized is returned.")]
+    public async Task FavoriteArticle_NoAuth_Returns401()
+    {
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+
+        var response = await anon.PostAsync("articles/some-slug/favorite", content: null);
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.Unauthorized,
+                "the spec documents 401 for an unauthenticated favorite"),
+            "Unauthenticated favorite returns 401.");
+    }
+
+    [Trait("API", "Articles")]
+    [Fact(DisplayName = "DELETE /articles/{slug}/favorite without auth returns 401")]
+    [AllureFeature("Favorite Article")]
+    [AllureDescription("Given no token, When unfavoriting an article, Then 401 Unauthorized is returned.")]
+    public async Task UnfavoriteArticle_NoAuth_Returns401()
+    {
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+
+        var response = await anon.DeleteAsync("articles/some-slug/favorite");
+
+        AllureReportUtils.LogAndAssert(response.StatusCode,
+            s => s.Should().Be(HttpStatusCode.Unauthorized,
+                "the spec documents 401 for an unauthenticated unfavorite"),
+            "Unauthenticated unfavorite returns 401.");
+    }
 }

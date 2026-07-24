@@ -54,7 +54,7 @@ finding below. Write entries by hand only when editing history.
 
 **Finding**    Valid payload rejected when `tagList` is an empty array.
 **Cause**      API requires the key absent, not empty; spec says optional.
-**Resolution** Omit `tagList` when empty. Raised as CONDUIT-214.
+**Resolution** Omit `tagList` when empty. Raised as QEBS-214.
 **Future rule** Treat "optional array" as omit-when-empty until the spec is fixed.
 ```
 
