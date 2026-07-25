@@ -12,10 +12,15 @@ they never reach the framework or a config file.
 
 The host and default project come from the project config's `tracker:` block,
 so they are declared once and not restated per developer. Only the credentials
-live in the environment:
+live in the environment - and the client loads them from the git-ignored
+`env/.env` automatically, so you do not have to `source` it first:
 
-    export JIRA_EMAIL=you@example.com
-    export JIRA_API_TOKEN=...            # id.atlassian.com/manage-profile/security/api-tokens
+    # env/.env  (git-ignored)
+    JIRA_EMAIL=you@example.com
+    JIRA_API_TOKEN=...                   # id.atlassian.com/manage-profile/security/api-tokens
+
+An already-exported variable still wins, so `JIRA_EMAIL=other python ...` works
+for a one-off.
 
 The acceptance-criteria field id differs per Jira instance, so it is NOT
 declared anywhere: the client discovers it by name from the instance's own field
@@ -47,6 +52,34 @@ import urllib.request
 from typing import Any
 
 TIMEOUT = 30
+
+
+def _load_dotenv() -> None:
+    """Populate the environment from the project's git-ignored dotenv file.
+
+    The client needs JIRA_EMAIL / JIRA_API_TOKEN in the environment. An agent
+    that runs this without first `source`-ing env/.env sees "missing variable"
+    and reports the tracker as *unreachable* - which it is not. Loading the file
+    here removes that trap, so the client works whether or not the shell exported
+    the vars. An already-exported variable always wins: the file never overrides
+    what is already set, so an explicit override for a one-off still holds.
+    """
+    root = pathlib.Path(__file__).resolve().parent.parent
+    for candidate in (root / "env" / ".env", root / ".env"):
+        if not candidate.is_file():
+            continue
+        for raw in candidate.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            if key and key not in os.environ:
+                os.environ[key] = value.strip().strip('"').strip("'")
+
+
+_load_dotenv()
+
 
 def _tracker() -> dict[str, str]:
     """The tracker block from the project config: host and project.

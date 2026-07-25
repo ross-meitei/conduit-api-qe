@@ -52,6 +52,38 @@ Runs pause for a human at:
 
 Neither is auto-approved. Gates are configured under `gates:` in `appqe.yml`.
 
+## Requirement context (optional, but it deepens the tests)
+
+A spec gives the **shape** of an endpoint; it does not say that a duplicate email
+must return 409, or that a wiki page fixed the retry window at 30 seconds. Tests
+written from the spec alone are correct and shallow. Point appqe at the systems
+that hold the requirements, under `tools:` in `appqe.yml`:
+
+```yaml
+tools:
+  jira: mcp:atlassian/getJiraIssue        # an MCP tool the host already has, or…
+  confluence: utilities/confluence_client.py   # …a script in this repo
+```
+
+Each binding is either an MCP tool the host already exposes or a script in this
+project. **appqe never calls these systems** — it names the binding and the agent
+fetches, so no credential passes through the framework. Jira and Confluence ship
+starter clients:
+
+```bash
+appqe scaffold --tool jira           # writes utilities/jira_client.py
+appqe scaffold --tool confluence     # writes utilities/confluence_client.py
+```
+
+Non-secret config (host, project, default space) lives in `appqe.yml`;
+credentials go in `env/.env` (git-ignored) — on Atlassian Cloud one
+`JIRA_EMAIL` + `JIRA_API_TOKEN` pair covers both products. **You do not have to
+wire this before starting a run.** When a generation run reaches a source it
+could use but is not configured, it hands the agent the exact setup steps — so
+the agent can wire Jira or Confluence in place if the requirements need it, or
+build from the spec alone and say so. `appqe doctor` reports any binding that
+does not resolve.
+
 ## The checks
 
 | Command | What it enforces |

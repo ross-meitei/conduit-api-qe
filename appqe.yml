@@ -40,7 +40,7 @@ tracker:
 
 tools:
   jira: utilities/jira_client.py             # appqe names it; the agent runs it
-  # confluence: mcp:atlassian/getConfluencePage
+  confluence: utilities/confluence_client.py
   # sharepoint: mcp:sharepoint/getFile
   # Any other key is kept and exposed as {{tools.<name>}}, so a system appqe has
   # never heard of can be wired without forking it.
