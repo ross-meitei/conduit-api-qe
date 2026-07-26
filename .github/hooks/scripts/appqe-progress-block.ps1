@@ -24,4 +24,14 @@ $block -join "`n"
 ""
 "Paste the block above verbatim at the top of your reply, before anything else."
 "Do not reformat it, shorten it, or drop steps - it is the whole run, from appqe state."
+
+# Nudge the panel refresh, but do not paste the array back - re-emitting "Step 1 ..
+# Step N" every turn only feeds step-number chatter. One line, no dump.
+$todos = & $appqe progress --todos 2>$null
+if ($todos -and $todos -ne '[]' -and $todos -notmatch '^\[!!\]') {
+  ""
+  "Then refresh the task-list panel from this batch's ``progress.todos`` - write the"
+  "whole array, replacing the old list, so the widget matches the run and is not a"
+  "phase behind. Do not narrate step numbers in your reply; the panel names them."
+}
 exit 0

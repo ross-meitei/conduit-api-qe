@@ -31,4 +31,18 @@ fi
 printf '%s\n\n' "$block"
 printf 'Paste the block above verbatim at the top of your reply, before anything else.\n'
 printf 'Do not reformat it, shorten it, or drop steps - it is the whole run, from appqe state.\n'
+
+# The task-list panel is agent-driven, so it drifts. This batch already carries the
+# current `progress.todos`; nudge the agent to write it, but do not paste the array
+# back - re-emitting "Step 1 … Step N" every turn only feeds step-number chatter into
+# the reply. One line, no dump.
+todos="$("$APPQE" progress --todos 2>/dev/null)" || todos=""
+case "$todos" in
+  ""|"[]"|"[!!]"*) ;;
+  *)
+    printf '\nThen refresh the task-list panel from this batch'"'"'s `progress.todos` - write the\n'
+    printf 'whole array, replacing the old list, so the widget matches the run and is not a\n'
+    printf 'phase behind. Do not narrate step numbers in your reply; the panel names them.\n'
+    ;;
+esac
 exit 0

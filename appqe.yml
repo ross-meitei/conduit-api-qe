@@ -1,13 +1,23 @@
-# appqe.yml - Conduit API QE (C# / xUnit integration tests).
+# appqe.yml — Conduit API QE (C# / xUnit integration tests).
 #
 # Targets the public RealWorld "Conduit" API (https://api.realworld.show/api).
 # API tests are generated as .NET xUnit with a typed client generated from the
 # OpenAPI spec (NSwag) and Allure reporting. API-only project.
+#
+# This repo doubles as the reference consumer for exercising appqe setup, so the
+# file below is a full tour of the configuration surface: every block appqe reads
+# appears here, with the UI-only keys called out at the bottom as deliberately
+# omitted rather than forgotten. Every setting has a baseline default in
+# application/config.py — a project overrides only what applies to it.
+# Re-run `appqe sync` after editing this file.
 
+# ── Identity ──────────────────────────────────────────────────────────
 project_name: conduit-api-qe
 client_name: "RealWorld Conduit"
 
-scope: api                     # API-only: no UI content is deployed
+# ── What this project tests ───────────────────────────────────────────
+# "api" | "ui" | "both". API-only here, so no UI content is deployed.
+scope: api
 profile: openapi_xunit         # API tests generated as .NET xUnit (C#)
 api_language: "C#"
 
@@ -17,73 +27,104 @@ api:
   tests_dir: tests/api
   auth_scheme: "Token JWT (Authorization: Token <jwt>)"
 
-# ── Jira ──────────────────────────────────────────────────────────────
-# Everything Jira lives here, in one block, so there is one place to read and
-# one place to change. The split is by nature, not by whim:
-#
-#   • host + project    -> config (below). Non-secret, shared by the whole team,
-#                          committed once. utilities/jira_client.py reads them
-#                          straight from this file.
-#   • the API token     -> environment only (JIRA_EMAIL + JIRA_API_TOKEN in
-#                          env/.env, git-ignored). A committed token is a
-#                          published token, and the pre-tool guardrail blocks a
-#                          literal secret in an edit regardless.
-#
-# So a developer sets two env vars and nothing else; the host and project are
-# already correct. Token: id.atlassian.com/manage-profile/security/api-tokens
+# ── Context sources: where the *requirements* live ────────────────────
+# A spec describes the shape of an endpoint; it does not carry the acceptance
+# criteria, the business rules, or the decision recorded on a wiki page. These
+# blocks name the systems the agent may consult for that context — the "scope of
+# resources to search". appqe never calls them itself: it names the binding and
+# the host agent does the fetching, so client credentials never pass through the
+# orchestrator. The host + project keys below are non-secret and committed; every
+# credential stays in env/.env (git-ignored). A literal token in an edit is
+# blocked by the pre-tool guardrail regardless.
 
 tracker:
-  base_url: https://slalom.atlassian.net     # Jira host (read by jira_client.py)
-  project_key: QEBS                          # default project - bare `123` -> QEBS-123
-  # Nothing else to declare: the acceptance-criteria field id varies per Jira
-  # instance, so the client discovers it by name from the instance itself.
+  base_url: https://slalom.atlassian.net   # Jira host (read by jira_client.py)
+  project_key: QEBS                          # default project — bare `123` -> CONDUIT-123
+  qe_lead: "the QE lead"                        # named in bug comments / reports
+  # The acceptance-criteria field id varies per Jira instance, so the client
+  # discovers it by name from the instance itself — nothing to declare here.
+  # Credentials: JIRA_EMAIL + JIRA_API_TOKEN in env/.env (per developer).
+
+confluence:
+  # Where requirement pages live. Left blank, the client derives the host from
+  # tracker.base_url with /wiki appended (Atlassian Cloud serves both from one
+  # host), so this whole block is optional. space_key scopes a title/CQL search.
+  base_url: https://slalom.atlassian.net/wiki
+  space_key: ""
+  # Credentials: CONFLUENCE_EMAIL/CONFLUENCE_API_TOKEN, else the JIRA_* pair.
 
 tools:
-  jira: utilities/jira_client.py             # appqe names it; the agent runs it
+  # Shorthand bindings for the known systems. Each value is a script in this repo
+  # or an `mcp:` tool the host already has. Built-in search covers jira/confluence.
+  jira: utilities/jira_client.py
   confluence: utilities/confluence_client.py
   # sharepoint: mcp:sharepoint/getFile
   # Any other key is kept and exposed as {{tools.<name>}}, so a system appqe has
   # never heard of can be wired without forking it.
 
-api_test_runner: dotnet test
-default_platform: copilot       # names the AGENT, not the editor
+# data_sources: the explicit long form of the above — reach for it to search a
+# system appqe has no built-in syntax for, or to override how a known one is
+# queried. A data_sources entry wins for a name that also appears under tools:.
+# Left empty here because tools: already covers jira + confluence.
+data_sources: []
+  # - name: servicenow
+  #   binding: utilities/snow.py
+  #   search: 'search --text "{terms}"'    # {term} / {terms} filled in at call time
 
-# Model tiers - defaults shown; tune per project.
-models:
-  coordinator: sonnet            # drives the loop, holds the run context
-  tiers:                       # workers take a tier from the step's complexity
-    light: haiku
-    standard: sonnet
-    deep: sonnet
-  workers: {}                  # per-role override, e.g. spec_survey: haiku
+# ── Toolchain ─────────────────────────────────────────────────────────
+package_manager: uv             # how the Python context helpers launch: uv|poetry|pip
+api_test_runner: dotnet test    # rendered as {{api_test_runner}}
+default_platform: copilot       # names the AGENT (copilot|claude|cursor|windsurf|kiro), not the editor
 
+# ── Guardrails ────────────────────────────────────────────────────────
 security:
   allow_prod: false
   allowed_hosts:
-    - api.realworld.show
+    - api.realworld.show        # base_url hosts are auto-allowed; this is explicit
+  # blocked_hosts: []           # hosts always treated as never-hit
   prod_markers:
     - prod
     - production
     - live
+  # Extra executables beyond the built-in test-stack allowlist. appqe, dotnet, and
+  # mkdir are already built in — only the project-specific tools need listing.
   allowed_commands:
-    - appqe      # the orchestrator's own CLI - without this the guard blocks the run loop
-    - mkdir
-    - dotnet
-    - nswag
-    - allure
+    - nswag       # regenerates the typed client from the spec
+    - allure      # renders the test report
   redact_pii: true
 
+# ── Quality gates for generation / audit ──────────────────────────────
 quality:
-  min_endpoint_coverage: 0.8
-  self_review_iterations: 2
-  flaky_reruns: 3              # re-runs used to classify a failure as flaky
+  min_endpoint_coverage: 0.8    # fraction of API operations that need a test
+  self_review_iterations: 2     # min self-review passes before "done"
+  flaky_reruns: 3               # re-runs used to classify a failure as flaky
+  allow_quarantine: true        # may quarantine a diagnosed flaky test
 
+# ── Model tiers ───────────────────────────────────────────────────────
+# Coordinator drives the loop and holds the run context; workers take a tier from
+# the step's complexity. (Baseline coordinator is opus; pinned to sonnet here.)
+models:
+  coordinator: sonnet
+  tiers:
+    light: haiku
+    standard: sonnet
+    deep: sonnet
+  workers: {}                   # per-role override, e.g. spec_survey: haiku
+
+# ── Consumer extension points ─────────────────────────────────────────
 intents:
   - mode: bug_retest
     pattern: verify the fix for CONDUIT-\d+
     confidence: 0.95
 
+# vars: extra {{vars.<name>}} template values for shipped content.
+# vars: {}
+
 # No gate is auto-approved. generation_review previously was, which silently
-# disabled the review the agent instructions call non-optional - tests reached
+# disabled the review the agent instructions call non-optional — tests reached
 # "final" without anyone reading them.
 gates: {}
+
+# ── Deliberately omitted (UI-only; scope is api) ──────────────────────
+# ui_profile, ui_language, ui:, ui_test_runner, quality.min_flow_coverage — set
+# these and flip scope to "both" if this project ever grows a UI suite.

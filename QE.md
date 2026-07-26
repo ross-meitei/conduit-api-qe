@@ -35,6 +35,14 @@ appqe status <run_id>                                 # where a run got to
 appqe list --incomplete                               # runs that never finished
 ```
 
+> **Copilot: type `#todo` to get the live task-list panel.** On this build the panel only appears when *you* put `#todo` in your message - a custom agent is not handed the tool otherwise, so without it you get the checklist as plain text. Prefix the run and re-include it on gate replies:
+>
+> ```
+> #todo /appqe-generate-api-tests for /user
+> ```
+>
+> Requires `chat.tools.todos.showWidget: true` at **workspace** scope (a multi-root workspace ignores a per-folder `.vscode/settings.json`). Claude Code renders the panel natively with none of this.
+
 Ready-made requests are available as prompts:
 
 - `/appqe-audit-coverage` - Audit API/UI test coverage against the spec and app, and report prioritized gaps.

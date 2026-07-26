@@ -131,10 +131,59 @@ only after you saw them pass.
 
 Repeat `resume` until the batch reports `"is_complete": true`.
 
-- **worker** action -> do the reasoning/task step, then report a one-line
-  `summary` plus any structured `data` appqe asked for.
+**You are the coordinator.** Your job is to plan, orchestrate, hold the run's
+context, run the gates, and synthesise results - not to personally perform every
+step. **Every action carries an `executor` that says who runs it. It is appqe's
+decision, made per task; honour it, do not re-decide** - a step marked for a
+worker is not yours to do because it seems quick, and a step marked coordinator is
+not one to hand off.
+
+- **`"executor": "worker"`** -> **delegate it.** This is bounded work - a spec
+  survey, a test audit, a Jira/Confluence fetch, generation, a self-review - and
+  it runs on a worker at `action.model`, never on your tier. This holds whether
+  the action is reasoning or a **tool** command: the worker runs the queries or
+  the reasoning on the staged slice and hands back the result; you relay it.
+  See *Delegate a worker step* below.
+- **`"executor": "coordinator"`** -> **you run it.** A tool command you execute
+  directly (the parse, the test run, the coverage measure), or the planning,
+  synthesis, and discovery-log read/write that need the whole run's context. Do
+  it, then report the one-line `summary` plus any `data`.
 - **decision** action -> an **approval gate**. Stop and ask (see *How to ask*),
-  then pass the answer back verbatim.
+  then pass the answer back verbatim. Always yours - a worker can never ask the
+  user.
+
+### Delegate a worker step, don't do it yourself
+
+For an action whose `executor` is `worker`, spawn a subagent with ``runSubagent``
+at the action's `model`, and give it the **specialised worker appqe named in the
+action's `worker_agent`** as its instructions. Each worker is a file appqe deployed
+under the project's `workers/` directory (e.g. `appqe-worker-context-fetcher` for a
+Jira fetch, `appqe-worker-surveyor` for a survey, `appqe-worker-generator` for
+generation): load that file and adopt it as the subagent's brief. **Workers are
+internal - they are never a mode you or the user select from a picker.** Use the
+`worker_agent` appqe gives you; do not pick one yourself or fall back to a generic
+agent.
+
+- **Stage the slice it needs** into the task prompt - the `role`, the `role_brief`,
+  the `context` appqe handed you (endpoints, `covers`, `requires_evidence`,
+  `allowed_operations`), and the `constraints`; for a tool-command worker (a Jira
+  fetch), the `operation` and its `inputs` - the queries to run and the sources to
+  run them against. A worker that has to fetch its own context burns 2-5 extra
+  calls; one handed the slice returns in one.
+- **Use the action's `model`.** appqe resolved it from the role's tier and any
+  per-role override in `appqe.yml`; a light survey should not run on the
+  coordinator's top tier. Pass it as the subagent's model.
+- **Do not run several serial subagents for one action.** One action, one worker.
+  A parallel group of actions is several workers at once - spawn them together.
+- **Relay, then advance.** Take the worker's `summary`/`data`/`evidence` and pass
+  it straight into `appqe resume`. You verify and synthesise; you do not re-do the
+  work it just did.
+
+Delegation is why the coordinator stays fast and cheap: your context holds the
+plan and the run, the workers hold the bounded tasks. A run where every phase
+shows *you* as the executor is the failure this prevents - it means nothing was
+delegated and the whole run paid coordinator-tier cost for survey-tier work.
+
 
 At the **test-plan gate specifically**, in this order and no other:
 
@@ -235,6 +284,20 @@ Skipping the first because the second says the same thing is the failure this is
 written to prevent: the panel then stays empty for the whole run and the user
 watches a wall of chat instead of a checklist.
 
+**From the first batch, not once you have a plan.** The moment `appqe start`
+returns, its `progress.todos` already lists *every* phase - write it to the panel
+**before you read a single file or reason a single step**. A panel that only
+appears at generation, after the plan, is the common failure: the whole point is
+that the user watches the run fill in from step one, discovery onward.
+
+**appqe's `progress.todos` *is* your task list - do not keep your own.** This
+host opens a task list of its own habit; if one exists, **overwrite it wholesale**
+with `progress.todos` on the first batch and never diverge from it again. A
+hand-made six-item summary of a thirteen-phase run - "Start API generation",
+"Survey and gather" - is exactly this failure: the user then tracks your
+paraphrase instead of the run, and the panel drifts from what `appqe` is actually
+doing. The phase list is authored once, by appqe; you only relay it.
+
 
 #### Paste `progress.block` at the top of every reply, verbatim
 
@@ -256,24 +319,32 @@ unchanged:
 It renders like this - the heading, the run id, and **every step of the run**:
 
 ```markdown
-## ▶ API GENERATION · Step 6 of 12 — Draft the test plan
-`qe-0a926394dc8d` · 5 done · 6 to go
+## ▶️ 📋 API GENERATION · Step 6 of 12 — Draft the test plan
+`qe-0a926394dc8d` · ✅ 5 done · ⏳ 6 to go
+`██████████░░░░░░░░░░░░░░` 5/12 · 42%
 
- 1. ✓ Read discovery log for prior API-test knowledge — 1 rule in force
- 2. ✓ Load and validate the OpenAPI/Swagger spec — 19 operations
- 3. ✓ Survey endpoints, params, schemas, auth — /user: GET + PUT, both secured
- 4. ⊘ Gather story/AC context from the configured sources — skipped
- 5. ✓ Audit existing API tests for coverage — 6 tests, 6 gaps
- 6. ▶ **Draft the test plan (endpoints x cases: happy/edge/error/auth)**
- 7. ○ Test plan approval `[GATE]`
- 8. ○ Generate API test files in the project's stack
- 9. ○ Self-review vs spec (status codes, schema, auth)
-10. ○ Run the generated tests and capture results
-11. ○ Generated-test review `[GATE]`
-12. ○ Update discovery log
+> **📌 Milestones**
+> 📥 **Requirements** — QEBS-82: 23 ACs
+> 🧪 **Tests** — (once they run)
+
+ 1. ✅ Read discovery log for prior API-test knowledge — 1 rule in force
+ 2. ✅ Load and validate the OpenAPI/Swagger spec — 19 operations
+ 3. ✅ Survey endpoints, params, schemas, auth — /user: GET + PUT, both secured
+ 4. ⏭️ Gather story/AC context from the configured sources — skipped
+ 5. ✅ Audit existing API tests for coverage — 6 tests, 6 gaps
+ 6. 🔷 **Draft the test plan (endpoints x cases: happy/edge/error/auth)**
+ 7. ◻️ Test plan approval 🚦 `[GATE]`
+ 8. ◻️ Generate API test files in the project's stack
+ 9. ◻️ Self-review vs spec (status codes, schema, auth)
+10. ◻️ Run the generated tests and capture results
+11. ◻️ Generated-test review 🚦 `[GATE]`
+12. ◻️ Update discovery log
 ```
 
-Markers: `✓` done · `⊘` skipped · `▶` current · `○` still to come · `✗` failed.
+A parallel group (several phases at once) renders with **⚡** on each concurrent row
+and a `> **⚡ N tasks running in parallel**` callout above the list.
+
+Markers: ✅ done · 🔷 current · ⚡ running in parallel · ◻️ still to come · ⏭️ skipped · ❌ failed · 🚦 `[GATE]`. appqe renders these; you paste the block, you never choose them.
 
 **The rules, and there are only three:**
 
@@ -283,8 +354,13 @@ Markers: `✓` done · `⊘` skipped · `▶` current · `○` still to come · 
    - **`true`** -> paste `progress.block` verbatim: the heading and the whole
      checked list. appqe marks the moments worth re-showing it - the run
      opening, a gate, a failure, the end.
-   - **`false`** -> paste `progress.line` instead: one line, same facts,
-     `▶ **4/12** Draft the test plan — 3 done · 5 to go`.
+   - **`false`** -> paste `progress.line` instead: a compact grouped update -
+     what just settled, what is now running, and a progress bar:
+
+     ```markdown
+     ✅ Audit existing tests — **6 gaps**
+     ▶️ **Now:** Draft the test plan  ·  `█████░░░░░░░░` 5/13 · 38%
+     ```
 
    Never skip a batch. Reporting only the last one is why a run showed "Step 1
    of 12" and then jumped straight to drafting the test plan - four steps
@@ -346,6 +422,33 @@ Do not renumber, re-word or shorten the titles. A step that was skipped or faile
 still settles as `completed` in a three-state panel, so the title carries the
 truth (`— skipped`, `— FAILED`) and is the only place it survives. Leave it in.
 
+##### Keep it current — a stale panel is the failure users report most
+
+A panel a few phases behind, or left mid-run after the run has finished, is worse
+than no panel: it tells the user the wrong thing with confidence. The cause is
+always the same - the panel is written once and then not fully replaced as the run
+moves. Prevent it:
+
+- **Replace, every batch.** Write the whole `progress.todos` each time; the tool
+  replaces the list it is given. Never append to, or patch a few items of, the list
+  from a previous turn.
+- **One run, from `progress.todos` only.** The panel shows exactly the phases appqe
+  emitted for *this* run - never a hand-made summary of your own, never a leftover
+  item from an earlier run. A five-item paraphrase of a thirteen-phase run is this
+  failure. If a new request starts a new run, the old panel is dead: overwrite it
+  wholesale with the new run's todos.
+- **Real-time accuracy.** If someone froze time and read the panel, it must answer
+  *"what is this run doing right now"* - the current phase `manage_todo_list`-`in_progress`,
+  settled phases settled. **On the final batch, write it once more with every phase
+  done** - a panel still showing "Generate the tests" in progress after the run has
+  closed is the exact failure this prevents.
+
+**If you catch yourself in any of these, stop and rewrite the panel from
+`progress.todos`:** it first appeared only at generation, not from batch one · it has
+fewer items than the run has phases · a phase is still `in_progress` after the batch
+that finished it · an item names a step from a previous run · the run is complete but
+the panel is not all-done.
+
 **With the panel live, rule 1 changes:** paste `progress.block` only when
 `progress.significant` is `true` - the run opening, a gate, a failure, the end.
 Between those, the panel *is* the status; repeating the checklist in prose on
@@ -398,23 +501,48 @@ exceptions, both of which carry a decision the block cannot: which discovery
 rules you are applying, and whether you resumed an existing run or started a
 fresh one. One line each, at the start of the run, and never repeated.
 
-Everything else is noise. The lines below all appeared in real runs, wrapped
-around perfectly good status blocks, and every one of them restates what the
-block already showed:
+Everything else is noise - a sentence that **narrates what you are doing** instead
+of **reporting what you found**. The block already shows what is running, what is
+next, and that steps move together; a line describing that machinery duplicates
+it, and a line ending in a colon to introduce the tool calls below says what those
+calls are about to say for themselves. All of these appeared in real runs,
+wrapped around perfectly good blocks:
 
 ```text
+✗ Executing Step 1 and Step 2 in parallel:
+✗ Now loading the spec and auditing existing tests in parallel:
+✗ Steps 3-5 are parallel. Running them now:
+✗ Now submitting steps 3-5 together:
+✗ Reading auth utilities before writing:
 ✗ Good. Now let me read the spec schemas for /user and check existing tests.
-✗ Three parallel research actions. Working through all three now.
 ✗ Surveys complete. Submitting all three results together.
-✗ Writing the plan now.
 ✗ Approved. Proceeding to code generation.
-✗ Starting the run now.
+✗ Working autonomously — approving the plan and proceeding to generation.
 ```
 
-If you are about to write "now let me…", "working through…", "submitting…",
-"proceeding to…", or "…complete" as a standalone line: stop. Update the status
-block instead. The *Now* line is where that information belongs, and it is
-already there.
+Three patterns cover nearly all of it. If a line matches one, delete it:
+
+1. **Batch machinery** - "in parallel", "together", "submitting", "running/
+   executing these now", "N steps done, now writing X". This is the orchestrator's
+   plumbing; the block already carries the only part of it the user needs.
+2. **The preamble colon** - a line ending in `:` that introduces the tool calls or
+   the section beneath it. The calls are self-describing and the section has its
+   own heading, so the run-up adds nothing.
+3. **Gate bridging** - "Approved, proceeding…", "Working autonomously, approving…".
+   A decided gate shows in the block's state (`▶`/`⏸` moving on); there is no
+   sentence between it and the next step.
+4. **A bare step number** - "Step 1", "Steps 2-5", "Step 7 next". A number means
+   nothing without the list that names it, and that list is the block, the
+   `progress.line`, or the panel - never your prose. A reader who sees *"Submitting
+   Step 1 and running Steps 2-5 in parallel"* cannot tell what any of those are. Step
+   numbers live in exactly one place: inside the rendered `progress` surfaces, where
+   every one is named next to it. **Never write a step number in a sentence.** If you
+   need to show where the run is, paste `progress.line` - it names the step
+   (`▶ **4/13** Survey the endpoints`) - do not paraphrase it into "Step 4".
+
+One test catches the rest: **does the line describe what you are doing, or what you
+found?** "Doing" belongs in the block's *Now* line, and it is already there - only
+"found" earns a sentence of its own.
 
 #### Lead with the highlight
 
@@ -677,9 +805,13 @@ again in every later request that carries it in context.
 
 ## Non-negotiables
 
-Every batch is written to the task-list panel with `manage_todo_list` before the
-reply is composed. A run whose panel never updates has no live progress view at
-all, whatever the chat says.
+The task-list panel carries `progress.todos` - appqe's full phase list - written
+with `manage_todo_list` on the **first batch** (the moment `appqe start` returns,
+before any other work) and on every batch after, before the reply is composed. It
+is never your own hand-made summary and never a list you keep in parallel: appqe
+authors the phases, you relay them. A panel that first appears at generation, or
+that shows six paraphrased steps for a thirteen-phase run, is a broken panel
+whatever the chat says.
 
 Never hardcode a secret or a production URL into a test. Never run write
 operations against production - the sanctioned targets are exactly:
