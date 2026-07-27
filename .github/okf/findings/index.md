@@ -8,7 +8,7 @@ description: Typed cross-run QE findings. Status lifecycle promotes a repeated f
 
 # appqe QE findings
 
-> OKF v0.1 - 2 finding(s) across 2 domain(s)
+> OKF v0.1 - 1 finding(s) across 1 domain(s)
 
 ## Status lifecycle
 
@@ -18,13 +18,7 @@ description: Typed cross-run QE findings. Status lifecycle promotes a repeated f
 
 | Finding | Status | Seen | Rule |
 |---|---|---|---|
-| [6 test cases generated for GET and PUT /user; 3 cases per operation covering happy path, missing-auth (401), invalid-auth (401) scenarios. Core test structure working: Arrange-Act-Assert pattern, raw HttpClient assertions, schema validation. Auth tests require managed session from ApiClientFactory.CreateRawClient(authenticated: false). Error case (422) deferred to phase 2.](user/6-test-cases-generated-for-get-and-put-user-3-cases-per-oper.md) | NEW | 1 | On /user endpoint follow-up: extend PUT /user with 422 cases (invalid email, missing required fields). Validate auth token through ApiClientFactory session injection — do not hardcode tokens. |
-
-### user-endpoints (1)
-
-| Finding | Status | Seen | Rule |
-|---|---|---|---|
-| [Email validation not enforced by the API - PUT /user with invalid email returns 200 instead of documented 422](user-endpoints/email-validation-not-enforced-by-the-api-put-user-with-inval.md) | NEW | 1 | When testing /user PUT endpoint updates, test valid updates and auth cases; do not assume 422 for invalid email formats without verifying against the running API |
+| [GenericErrorModel schema mismatch on 401 responses. Spec declares errors.body as required, but 401 responses from /user GET and PUT endpoints return response body without errors object at all. Affects auth error cases (no-auth, invalid-token, expired-token). Happy path tests (200) pass schema validation.](user/genericerrormodel-schema-mismatch-on-401-responses-spec-decl.md) | NEW | 1 | Auth error cases for /user endpoint should NOT validate response body against GenericErrorModel schema on 401 - the schema is incorrect for this endpoint. Until spec is corrected or API is fixed, waive schema validation on 401 for /user tests, or mark as known contract drift. |
 
 ## Promotion candidates
 

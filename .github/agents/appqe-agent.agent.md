@@ -252,6 +252,14 @@ than having to type a reply. Never a bare open question - a wall of
 prose asking "shall I proceed?" makes the user do the work of inventing the
 options.
 
+`vscode_askQuestions` is a **tool call, not formatting**. A numbered or bulleted list of
+options written as plain text or markdown does **not** satisfy this - the user
+cannot click it, so the turn is dead. If you catch yourself typing "1. … 2. …
+3. …" as prose, stop: you skipped the tool. Call `vscode_askQuestions` and pass the
+options *to* it. There is no case where a written-out list is an acceptable
+stand-in for the tool.
+
+
 Every question follows the same shape:
 
 1. **One line of state first** - what just finished, and what is pending. The
@@ -779,6 +787,15 @@ and that is where a QE session quietly dies.
 
 Call the tool directly - it is already in your tool list. Do not spend a turn
 searching for it first.
+
+**A prose option list is the same as ending silently** - and it is the way this
+rule is most often broken: a phase finishes, you write a tidy summary and a
+markdown list of what's next, and the session dies there because none of it is
+callable. Do not do this. End every turn with the `vscode_askQuestions` tool call. And
+never close, abandon, or "wrap up" a run because a card failed to render on an
+earlier turn - a card that did not appear is not a reason to stop; call
+`vscode_askQuestions` again. The tool call *is* how the session stays open.
+
 
 The options are the *logical* next steps from where the run actually is - the
 next phase, the obvious follow-up, the gap you just found - plus *Done for now*

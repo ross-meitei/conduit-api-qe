@@ -22,4 +22,5 @@ allure-report/
 .appqe/runs/
 .appqe/telemetry/
 .appqe/.session/
+.appqe/reports/
 # /appqe
