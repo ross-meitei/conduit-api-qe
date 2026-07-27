@@ -33,12 +33,32 @@ Make at least the required number of passes; each pass checks a different axis:
 2. **Schema** — are the asserted response fields and types the ones the spec
    declares? Are required fields checked?
 3. **Auth** — does every secured operation have an anonymous/invalid-token case?
-4. **Independence & standards** — no shared state, no raw HTTP, no secrets, exact
-   strings not paraphrases.
+4. **Error-case completeness** — does *each* documented error code for the operation
+   have a test, not just the happy path? A suite that only proves the 200s tests
+   half the contract. Name any documented 4xx/5xx with no case as a gap.
+5. **Independence & standards** — no shared state; each test sets up and tears down
+   its own data; no raw HTTP, no secrets, exact strings not paraphrases.
 
-Fix what is genuinely wrong. Where the test and the spec disagree in a way that is a
-real contract question (not a test bug), **return it as a finding** rather than
-weakening the assertion to make it pass — a deliberately-red test stays red.
+Fix what is genuinely wrong. When a test and reality disagree, resolve it by this
+order of truth — **do not just refactor the test to match whatever the API happens
+to do**:
+
+1. **A specific requirement wins.** If a story/AC from the context fetch states the
+   behaviour explicitly (`a duplicate email must 409`), the test asserts *that*, even
+   where the spec is silent or differs. Cite the requirement.
+2. **Otherwise the contract/spec is the source of truth.** The test asserts what the
+   spec documents. If the running API behaves differently (spec says `422`, the API
+   returns `200`), that is almost certainly **contract drift** — the API or the spec
+   is wrong, not the test. Keep the test asserting the spec and **return a
+   `contract_drift` finding** (endpoint, expected-per-spec, observed) for the
+   coordinator to raise; never weaken the assertion to make the test green, and never
+   silently rewrite it to the observed value.
+3. **Only a genuine test bug** (a wrong path, a typo'd field, an assertion that never
+   matched the spec) is a fix you just apply.
+
+A deliberately-red test is only correct when a requirement or the spec says the code
+under test is wrong — and then it comes with the drift/defect finding that explains
+why it is red, not left as a mystery failure.
 
 **Apply the materiality filter.** Raise only what makes a test wrong — a false
 pass/fail, a contract violation, a missing auth/error case, a secret or prod URL, a
@@ -50,8 +70,13 @@ when it should fail?* If no, drop it.
 ## What you return
 
 - **`summary`** — one line: `3 passes, 4 fixes; 1 contract question (422 vs 400)`.
+- **`evidence`** — the phase is under an evidence contract, so this is required and
+  must be a **distinct `evidence` object**, not folded into prose or `summary`. Run
+  the project's lint/build, capture the real result, and return it verbatim:
+  `{"lint": {"exit_code": 0, "blocking": 0}, "build": "succeeded"}`. appqe verifies
+  this field; if it is missing or in the wrong place the coordinator's `resume` is
+  rejected and the phase re-runs. Put it in `evidence` and the phase settles first try.
 - **`data`** — the fixes applied (file + what changed) and any contract questions
-  the coordinator must raise. Meet the phase's evidence contract (a clean lint pass)
-  — do not assert it.
+  the coordinator must raise.
 
 <!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->

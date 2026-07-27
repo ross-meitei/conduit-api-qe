@@ -33,6 +33,14 @@ back so the coordinator can plan a test that is tailored, not just correct.
    (Jira, Confluence, and any others wired for this project). The `sources` list is
    authoritative — never report a listed source as "not configured"; run its query.
    Say what you searched for.
+   - **A source that errors is non-fatal.** If a query fails — the host is
+     unreachable, auth/VPN is missing, credentials are unset, the client exits
+     non-zero — record *which* source and *why* in one line, move on to the other
+     sources, and **still return `success: true`**. Requirement context is
+     best-effort enrichment; the OpenAPI spec is the source of truth for the tests.
+     A tracker you cannot reach is a note ("Jira unreachable — no VPN"), **never a
+     failed phase.** Only return `success: false` if you were given no sources and
+     no search capability at all.
 2. A request rarely carries an issue key — it names a feature ("tests for /user").
    Search by the feature terms; "no directly-linked story" is not "no context".
 3. **Quote, cite, digest.** Return acceptance criteria and rules *quoted* from the

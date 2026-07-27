@@ -104,12 +104,25 @@ quality:
 # Coordinator drives the loop and holds the run context; workers take a tier from
 # the step's complexity. (Baseline coordinator is opus; pinned to sonnet here.)
 models:
-  coordinator: sonnet
-  tiers:
-    light: haiku
-    standard: sonnet
-    deep: sonnet
-  workers: {}                   # per-role override, e.g. spec_survey: haiku
+  coordinator: haiku
+  tiers:                        # a worker's model comes from its role's tier
+    light: haiku                # fetch & survey roles
+    standard: sonnet            # audit, map, diff, review, triage roles
+    deep: sonnet                # generation & root-cause roles
+  # Per-role model override. Default `{}` = every role uses its tier (above).
+  # Nameable roles, grouped by the tier they default to:
+  #   light    -> context_gather, bug_fetch, linked_bugs, endpoint_survey, flow_survey,
+  #               inventory, test_index, locate_test, merge_check
+  #   standard -> existing_test_audit, selector_audit, test_map, gap_analysis, diff,
+  #               self_review, reproduce, verify, triage
+  #   deep     -> generation, root_cause, challenge
+  # To pin roles, replace the `workers: {}` line below with a block (a key can't
+  # carry both `{}` and children) — list only the roles you change, e.g.:
+  #   workers:
+  #     endpoint_survey: haiku     # pin a light role to a model
+  #     self_review: sonnet        # pin a standard role
+  #     generation: sonnet         # pin a deep role
+  workers: {}
 
 # ── Consumer extension points ─────────────────────────────────────────
 intents:
@@ -120,10 +133,24 @@ intents:
 # vars: extra {{vars.<name>}} template values for shipped content.
 # vars: {}
 
-# No gate is auto-approved. generation_review previously was, which silently
+# Approval gates. By default none is auto-approved: a run pauses for your sign-off
+# at each. generation_review was once auto-approved by default, which silently
 # disabled the review the agent instructions call non-optional — tests reached
-# "final" without anyone reading them.
-gates: {}
+# "final" with no one reading them. So auto-approve is opt-in, per gate.
+#
+# To auto-approve, list gates as a block (below). For NONE auto-approved, use the
+# empty form `gates: {}` instead — a key can't carry both `{}` and child keys, so
+# it's one or the other. The gate ids:
+#   plan_approval        - sign off the test plan before generation
+#   generation_review    - review the generated tests before they are "final"
+#   bug_comment_approval - approve a comment before it is posted to the tracker
+gates:
+  # Local API-test generation, start-to-finish, unattended:
+  plan_approval:
+    auto_approve: true
+  generation_review:
+    auto_approve: true
+  # bug_comment_approval stays gated — it posts to the tracker (outward-facing).
 
 # ── Deliberately omitted (UI-only; scope is api) ──────────────────────
 # ui_profile, ui_language, ui:, ui_test_runner, quality.min_flow_coverage — set

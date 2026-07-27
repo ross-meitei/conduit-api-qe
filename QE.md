@@ -23,42 +23,79 @@ appqe doctor                     # verifies wiring in this project
 reports whether the CLI resolves, the config and spec load, the hooks are wired
 for this host, and whether a coverage baseline exists.
 
-## Using it
+## Using it — two surfaces
 
-Select the **appqe** agent in GitHub Copilot, then describe the QE task.
-The agent drives a phased run through the orchestrator — it does not improvise a
-workflow — and stops at approval gates.
+You interact with appqe in two places, and keeping them straight is what people
+trip on:
 
-```bash
-appqe start "generate api tests for POST /articles"   # -> run_id + first batch
-appqe status <run_id>                                 # where a run got to
-appqe list --incomplete                               # runs that never finished
+### 1. In GitHub Copilot — you *drive* a workflow, the agent *runs* it
+
+Select the **appqe** agent and describe the task (or fire a ready-made prompt).
+The agent drives a phased run through the orchestrator — it calls `appqe start`
+and `appqe resume` **itself; you never type those** — and stops at the approval
+gates for you.
+
+```
+generate api tests for POST /articles          ← natural language, or a prompt:
 ```
 
-> **Copilot: type `#todo` to get the live task-list panel.** On this build the panel only appears when *you* put `#todo` in your message - a custom agent is not handed the tool otherwise, so without it you get the checklist as plain text. Prefix the run and re-include it on gate replies:
->
-> ```
-> #todo /appqe-generate-api-tests for /user
-> ```
->
-> Requires `chat.tools.todos.showWidget: true` at **workspace** scope (a multi-root workspace ignores a per-folder `.vscode/settings.json`). Claude Code renders the panel natively with none of this.
-
-Ready-made requests are available as prompts:
+Ready-made prompts:
 
 - `/appqe-audit-coverage` - Audit API/UI test coverage against the spec and app, and report prioritized gaps.
 - `/appqe-contract-check` - Check existing tests against the current OpenAPI spec for contract drift.
 - `/appqe-generate-api-tests` - Generate API tests from the OpenAPI spec into the project's stack.
 - `/appqe-investigate` - Investigate a failing API or UI test and deliver a root-cause verdict.
 
+> **Copilot: put `#todo` in your message to get the live task-list panel.** On this build the panel only appears when *you* include `#todo` - a custom agent is not handed the tool otherwise, so without it you get the checklist as plain text. The slash command must come **first** (it is only recognised at the start of the input); `#todo` goes after it, on its own line:
+>
+> ```
+> /appqe-generate-api-tests for /user endpoint
+> #todo
+> ```
+>
+> Re-include `#todo` on every gate reply - each message needs its own.
+>
+> **Bind it so you don't retype it.** Keybindings are user-scoped (a project cannot ship one), so add this once to your *user* `keybindings.json` (Cmd/Ctrl+K Cmd/Ctrl+S -> the `{}` icon) - it opens the run pre-filled in the format above:
+>
+> ```jsonc
+> { "key": "cmd+alt+t", "command": "workbench.action.chat.open",
+>   "args": { "query": "/appqe-generate-api-tests for /user endpoint\n#todo", "isPartialQuery": true } }
+> ```
+>
+> Requires `chat.tools.todos.showWidget: true` at **workspace** scope (a multi-root workspace ignores a per-folder `.vscode/settings.json`). Claude Code renders the panel natively with none of this.
+
+### 2. In the terminal — you run setup and the read-only checks
+
+These are yours to run directly; **none of them starts an agent run**:
+
+```bash
+# setup / wiring — once, and again after editing appqe.yml
+appqe init · appqe sync --host copilot · appqe scaffold · appqe doctor
+# read-only QE checks — safe to run anytime (see "The checks" below)
+appqe lint tests/api · appqe coverage --kind api --detail · appqe contract verify
+# inspect a run the agent drove
+appqe status <run_id> · appqe list --incomplete · appqe summary <run_id>
+```
+
+`appqe start` / `appqe resume` are the **agent's** commands. You can inspect any
+run with `appqe status` / `list` / `summary`, but you drive the run from
+GitHub Copilot, not the terminal.
+
 ### Approval gates
 
-Runs pause for a human at:
+A run pauses for a human at **plan approval** (the plan is written to
+`.appqe/plans/<run_id>-test-plan.md` and opened; no tests are generated before it
+clears) and **generated-test review** (before tests are final). By default neither
+is auto-approved; set `gates:` in `appqe.yml` to auto-approve one for an unattended
+local run. **An auto-approved gate is flagged in the run summary** — it skipped
+human review, so its output has no sign-off.
 
-- **plan approval** — the test plan is written to `.appqe/plans/<run_id>-test-plan.md`
-  and opened for review. No tests are generated before this clears.
-- **generated-test review** — before generated tests are considered final.
+### The run summary
 
-Neither is auto-approved. Gates are configured under `gates:` in `appqe.yml`.
+When a run settles, appqe writes `.appqe/reports/<run_id>-summary.md` — the steps
+and their findings, the gate decisions (auto-approvals flagged), and the artifacts,
+rendered from the recorded state. The agent opens it at the end of a run; review it
+before acting on the results. On demand: `appqe summary <run_id>`.
 
 ## Requirement context (optional, but it deepens the tests)
 
