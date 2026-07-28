@@ -36,7 +36,18 @@ cp env/.env.example env/.env        # edit BASE_URL / optional creds
 dotnet test --settings coverlet.runsettings
 ```
 
-Allure results land in `allure-results/`; generate a report with the Allure CLI.
+Allure results land in **`bin/Debug/net9.0/allure-results/`** (Allure.Xunit writes
+relative to the test binary, not the repo root), and **accumulate across runs**.
+Generate a report from them with the Allure CLI:
+
+```bash
+rm -rf bin/Debug/net9.0/allure-results          # clean, so the report is just this run
+dotnet test --settings coverlet.runsettings
+allure serve bin/Debug/net9.0/allure-results     # temp report; opens in a browser
+```
+
+See **QE.md → "Generating the Allure report"** for the full workflow (persisting the
+report, history, and why failures show as *Broken*).
 
 ## Prerequisites
 

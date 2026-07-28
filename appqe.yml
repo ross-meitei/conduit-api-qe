@@ -100,11 +100,22 @@ quality:
   flaky_reruns: 3               # re-runs used to classify a failure as flaky
   allow_quarantine: true        # may quarantine a diagnosed flaky test
 
+# ── Token economy (how tightly the agent budgets its own output) ──────
+# The always-on appqe-token-economy discipline, tuned per project. Rendered into
+# the agent contract, so `appqe sync` after changing it.
+token_economy:
+  level: full          # lite (default: trims noise from the first tool call)
+                       #   | full (strict budget throughout) | off (don't force-load it)
+  escalate_after: 10   # actions before a long run escalates lite -> full; 0 = never
+
 # ── Model tiers ───────────────────────────────────────────────────────
 # Coordinator drives the loop and holds the run context; workers take a tier from
 # the step's complexity. (Baseline coordinator is opus; pinned to sonnet here.)
+# NOTE: the models are rendered into the agent + worker files, so after changing any
+# value here, re-run `appqe sync` for it to take effect (a fresh chat/session then
+# picks up the new selection).
 models:
-  coordinator: haiku
+  coordinator: opus
   tiers:                        # a worker's model comes from its role's tier
     light: haiku                # fetch & survey roles
     standard: sonnet            # audit, map, diff, review, triage roles
@@ -112,7 +123,7 @@ models:
   # Per-role model override. Default `{}` = every role uses its tier (above).
   # Nameable roles, grouped by the tier they default to:
   #   light    -> context_gather, bug_fetch, linked_bugs, endpoint_survey, flow_survey,
-  #               inventory, test_index, locate_test, merge_check
+  #               inventory, test_index, locate_test, merge_check, run_tests, coverage
   #   standard -> existing_test_audit, selector_audit, test_map, gap_analysis, diff,
   #               self_review, reproduce, verify, triage
   #   deep     -> generation, root_cause, challenge

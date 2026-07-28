@@ -1,5 +1,5 @@
 <!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->
-# QE setup — conduit-api-qe
+# QE setup — my-app-qe
 
 How the agentic QE workflow in this repo is set up, how to use it, and what to
 do with it when the engagement ends. Written for people; everything else appqe
@@ -15,7 +15,7 @@ silently unguarded. Get set up:
 
 ```bash
 # fastest — installs the CLI, fixes PATH, wires this repo, verifies:
-curl -fsSL <raw-url>/install.sh | bash          # Windows: irm <raw-url>/install.ps1 | iex
+curl -fsSL https://raw.githubusercontent.com/ross-meitei/appqe/main/install.sh | bash          # Windows: irm https://raw.githubusercontent.com/ross-meitei/appqe/main/install.ps1 | iex
 # …or by hand:
 uv tool install appqe            # or: pipx install appqe
 appqe --version                  # expect: 0.1.0
@@ -26,7 +26,7 @@ Blocked or misbehaving? Run the diagnostic — it checks PATH, `APPQE_BIN`, wiri
 `doctor`, with a fix printed for each:
 
 ```bash
-curl -fsSL <raw-url>/install.sh | bash -s -- --check
+curl -fsSL https://raw.githubusercontent.com/ross-meitei/appqe/main/install.sh | bash -s -- --check
 ```
 
 `appqe doctor` is the quick project-only check worth running after any setup change:
@@ -171,6 +171,41 @@ appqe discovery add --area <endpoint> --finding <what> --cause <why> --rule <nex
 findings name hosts, endpoints, auth behaviour and defect ids. Do not copy it
 into another project.
 
+## Bringing your own skills, instructions, and extensions
+
+The framework ships a baseline; **your project extends it without forking** - this is
+part of the ~30% you own. Two of these are **prose** the agent reads (skills,
+instructions); the third is **code** that adds a capability appqe never shipped.
+
+- **Project skills.** Author your own skill package - a `SKILL.md` (plus any
+  `references/`, `scripts/`, `templates/`) - under any name that is **not** `appqe-*`,
+  in the skills directory appqe deploys to. Sync never overwrites it, and the agent
+  loads it like a shipped skill when it fits the task:
+
+  ```bash
+  appqe scaffold --skill payments-domain   # stubs the SKILL.md (prints the path)
+  appqe inventory                          # lists shipped + your project skills
+  ```
+
+- **Project instructions (prose).** Put team conventions - naming, which endpoints
+  matter, what "done" means here - in the `appqe:custom` block the agent contract ships
+  ready for them (or one in this file, or your `AGENTS.md`). They
+  **survive every sync**, and the agent honors them - they tailor conventions, never
+  relaxing a gate, a guardrail, or an evidence requirement.
+
+- **Project extensions (code).** For a *new* capability the framework doesn't ship - a
+  new run mode, test stack, or agent host - register a Python **entry point** in your
+  `pyproject.toml`. Instructions above change *how* the agent works; an extension adds a
+  *new kind* of work:
+
+  ```toml
+  [project.entry-points."appqe.workflows"]
+  security_scan = "acme.qe:security_workflow"   # a new run mode, no fork
+  ```
+
+  `appqe.profiles` adds a test stack, `appqe.platforms` a host. Run `appqe capabilities`
+  to list what is registered.
+
 ## What appqe manages here
 
 Files carrying `<!-- appqe:managed vX.Y.Z -->` are generated — edit
@@ -195,4 +230,38 @@ Before the engagement closes:
 <!-- appqe:custom -->
 <!-- Anything between these markers survives `appqe sync`. Put project-specific
      notes here. -->
+<!-- /appqe:custom -->
+
+<!-- appqe:custom -->
+## Generating the Allure report
+
+The xUnit suite writes Allure results via `Allure.Xunit` (attributes from
+`GlobalUsing.cs`, output dir set in `allureConfig.json`). **Important:** Allure.Xunit
+writes relative to the *test binary*, so the results land in
+`bin/Debug/net9.0/allure-results/`, **not** the repo-root `allure-results/`. They also
+**accumulate across runs**, so clear the folder first for a report of just this run:
+
+```bash
+# 1. clean the results folder, then run the suite
+rm -rf bin/Debug/net9.0/allure-results
+dotnet test --settings coverlet.runsettings
+
+# 2a. quickest: build a temporary report and open it in a browser
+allure serve bin/Debug/net9.0/allure-results
+
+# 2b. …or keep the report as files (to publish or attach to a run)
+allure generate bin/Debug/net9.0/allure-results --clean -o allure-report
+allure open allure-report
+```
+
+Notes:
+- **Prerequisite:** the Allure CLI must be installed (`brew install allure` on macOS,
+  or Scoop / `allure-commandline` elsewhere). `dotnet test` only writes the raw
+  results; the CLI renders the report.
+- Assertion failures show as **Broken** (not Failed) in Allure — the suite's
+  `utils/AllureReportUtils` collects assertions and throws one `AggregateException`,
+  which Allure categorises as broken. The step log still lists each failed assertion.
+- Trend/history across runs is wired through `utils/AllureHistoryFixture`.
+- The `allure` executable is on the guardrail allowlist
+  (`security.allowed_commands` in `appqe.yml`), so these commands are permitted.
 <!-- /appqe:custom -->
