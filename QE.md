@@ -1,5 +1,5 @@
 <!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->
-# QE setup — my-app-qe
+# QE setup — conduit-api-qe
 
 How the agentic QE workflow in this repo is set up, how to use it, and what to
 do with it when the engagement ends. Written for people; everything else appqe

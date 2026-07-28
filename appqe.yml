@@ -115,7 +115,7 @@ token_economy:
 # value here, re-run `appqe sync` for it to take effect (a fresh chat/session then
 # picks up the new selection).
 models:
-  coordinator: opus
+  coordinator: haiku
   tiers:                        # a worker's model comes from its role's tier
     light: haiku                # fetch & survey roles
     standard: sonnet            # audit, map, diff, review, triage roles
