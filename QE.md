@@ -1,4 +1,4 @@
-<!-- appqe:managed v0.1.0 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.5.5 | do-not-edit-manually | regenerate: appqe sync -->
 # QE setup — conduit-api-qe
 
 How the agentic QE workflow in this repo is set up, how to use it, and what to
@@ -13,21 +13,40 @@ The guardrails shell out to the `appqe` CLI and **fail closed** — if it is not
 installed (or the editor can't find it), tool calls are blocked rather than
 silently unguarded. Get set up:
 
+
+
 ```bash
-# fastest — installs the CLI, fixes PATH, wires this repo, verifies:
-curl -fsSL https://raw.githubusercontent.com/ross-meitei/appqe/main/install.sh | bash          # Windows: irm https://raw.githubusercontent.com/ross-meitei/appqe/main/install.ps1 | iex
-# …or by hand:
-uv tool install appqe            # or: pipx install appqe
-appqe --version                  # expect: 0.1.0
+uv tool install "appqe @ git+https://github.com/Slalom/appqe.git"   # or pipx / pip install "appqe[openapi]"
+appqe --version                  # expect: 0.5.5
 appqe doctor                     # verifies wiring in this project
 ```
 
-Blocked or misbehaving? Run the diagnostic — it checks PATH, `APPQE_BIN`, wiring and
-`doctor`, with a fix printed for each:
+> **This install works for Slalom engineers only, and must be replaced before
+> handover.** `Slalom/appqe` is a private repo, so the command above needs Slalom git
+> credentials. A client engineer on a fresh clone cannot run it - and because the
+> guardrail hooks **fail closed**, they would find every agent tool call blocked with
+> no fix available in this document.
+>
+> Set **`install_command`** in `appqe.yml` to something the receiving team can
+> actually run, and this section will say so instead. Two shapes cover most cases:
+>
+> ```yaml
+> # a versioned wheel on the client's own package index
+> install_command: "pip install appqe==0.5.5 --index-url https://nexus.example.com/simple"
+> # ...or a wheel delivered with the project (works air-gapped; appqe has zero
+> #    runtime dependencies, so the single file is the whole install)
+> install_command: "uv tool install ./vendor/appqe-0.5.5-py3-none-any.whl"
+> ```
+>
+> The wheel for a release is attached to its GitHub Release; `uv build` produces one
+> from a checkout.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ross-meitei/appqe/main/install.sh | bash -s -- --check
-```
+(The `curl … | bash` one-liner works only against a *public* repo — `raw.githubusercontent.com`
+returns 404 for a private one. Use the git-auth install above, or a delivered wheel.)
+
+
+Blocked or misbehaving? `appqe doctor` checks PATH, `APPQE_BIN`, the config/spec, and the
+hook wiring for this project, with a fix printed for each.
 
 `appqe doctor` is the quick project-only check worth running after any setup change:
 it reports whether the CLI resolves, the config and spec load, the hooks are wired
@@ -81,6 +100,8 @@ These are yours to run directly; **none of them starts an agent run**:
 ```bash
 # setup / wiring — once, and again after editing appqe.yml
 appqe init · appqe sync --host copilot · appqe scaffold · appqe doctor
+# the project's conventions map — discover once, verify anytime
+appqe conventions discover · appqe conventions show · appqe conventions verify
 # read-only QE checks — safe to run anytime (see "The checks" below)
 appqe lint tests/api · appqe coverage --kind api --detail · appqe contract verify
 # inspect a run the agent drove
@@ -95,9 +116,10 @@ GitHub Copilot, not the terminal.
 
 A run pauses for a human at **plan approval** (the plan is written to
 `.appqe/plans/<run_id>-test-plan.md` and opened; no tests are generated before it
-clears) and **generated-test review** (before tests are final). By default neither
-is auto-approved; set `gates:` in `appqe.yml` to auto-approve one for an unattended
-local run. **An auto-approved gate is flagged in the run summary** — it skipped
+clears) and **generated-test review** (before tests are final) — and at
+**tool_setup**, when it needs requirement sources that are declared but not wired
+(wire now / skip this run / never). By default none is auto-approved; set `gates:`
+in `appqe.yml` to auto-approve one for an unattended local run. **An auto-approved gate is flagged in the run summary** — it skipped
 human review, so its output has no sign-off.
 
 ### The run summary
@@ -107,28 +129,67 @@ and their findings, the gate decisions (auto-approvals flagged), and the artifac
 rendered from the recorded state. The agent opens it at the end of a run; review it
 before acting on the results. On demand: `appqe summary <run_id>`.
 
+### Test reports (Allure)
+
+For a browsable report of the suite itself - a per-test timeline, the assertion
+log, and history across runs - `appqe allure` turns a run's raw **Allure results**
+into HTML. It finds the newest `allure-results` directory in the project on its own
+(a plain `allure-results/`, or for .NET `bin/Debug/<tfm>/allure-results/`), runs the
+Allure CLI, and prints the exact install steps for your OS if that CLI is missing:
+
+```bash
+appqe allure           # writes .appqe/reports/allure/index.html
+appqe allure --serve   # or open it straight in a browser
+```
+
+**Set it up if you have not - it is the report a stakeholder actually reads.** A
+run only writes Allure results when the suite has the Allure adapter wired:
+`Allure.Xunit` / `Allure.NUnit` (.NET), `allure-pytest` (Python), or the Allure
+reporter (Playwright / Jest). It is a few lines of setup and pays off at handover,
+where a shareable HTML report beats a terminal log. If `appqe allure` reports no
+`allure-results`, add the adapter for your stack, run the suite, then re-run it -
+`appqe allure` handles installing the CLI part for you.
+
 ## Requirement context (optional, but it deepens the tests)
 
 A spec gives the **shape** of an endpoint; it does not say that a duplicate email
 must return 409, or that a wiki page fixed the retry window at 30 seconds. Tests
-written from the spec alone are correct and shallow. Point appqe at the systems
-that hold the requirements, under `tools:` in `appqe.yml`:
+written from the spec alone are correct and shallow.
+
+**Name a ticket in the request and it is read first.** `/appqe-generate-api-tests
+for https://your.atlassian.net/browse/ABC-123` makes reading `ABC-123` step 1 of the
+run - named after it, ahead of the discovery log and the spec - because its acceptance
+criteria decide what the tests must prove and every later step depends on them. The same
+applies to a bare key (`ABC-123`) and to a bug retest. If the ticket cannot be fetched
+the run asks you for the criteria rather than planning from the spec and leaving you to
+assume your story was read.
+
+Point appqe at the systems that hold the requirements, under `tools:` in `appqe.yml`:
 
 ```yaml
 tools:
-  jira: mcp:atlassian/getJiraIssue        # an MCP tool the host already has, or…
-  confluence: utilities/confluence_client.py   # …a script in this repo
+  jira: utilities/jira_client.py               # a script in this repo (the default path), or…
+  confluence: mcp:atlassian                    # …an MCP tool, where the host has one and MCP is permitted
 ```
 
 Each binding is either an MCP tool the host already exposes or a script in this
 project. **appqe never calls these systems** — it names the binding and the agent
-fetches, so no credential passes through the framework. Jira and Confluence ship
-starter clients:
+fetches, so no credential passes through the framework. Any system works, not just
+the Atlassian pair — Azure DevOps, GitLab, GitHub, Notion, ServiceNow, Linear, or a
+name appqe has never heard of:
 
 ```bash
-appqe scaffold --tool jira           # writes utilities/jira_client.py
-appqe scaffold --tool confluence     # writes utilities/confluence_client.py
+appqe tools list                     # wired / declared / detected, plus the catalog
+appqe tools add <name>               # guided setup for any source (aliases work: ADO, gdocs)
+appqe scaffold --tool <name>         # dedicated starter (jira, confluence) or the
+                                     # generic skeleton with TODO(agent) markers
 ```
+
+If a run needs sources that are **declared but not wired yet**, it does not fail and
+does not guess: appqe raises the `tool_setup` approval gate — wire them now (the
+agent does the setup under that approval, and appqe verifies the binding resolves
+before continuing), skip for this run, or never (recorded as `binding: skip`, so a
+decision made once is not asked again).
 
 Non-secret config (host, project, default space) lives in `appqe.yml`;
 credentials go in `env/.env` (git-ignored) — on Atlassian Cloud one
@@ -138,6 +199,19 @@ could use but is not configured, it hands the agent the exact setup steps — so
 the agent can wire Jira or Confluence in place if the requirements need it, or
 build from the spec alone and say so. `appqe doctor` reports any binding that
 does not resolve.
+
+## Project conventions (what generated tests build on)
+
+appqe assumes nothing about this project's structure. `appqe conventions
+discover` records the suite's own seams - client factory, test-data builder,
+auth helper, page objects, selector policy - into `.appqe/conventions.yml`:
+project-owned, hand-editable, committed, and verified against the code on disk
+(`appqe doctor` flags entries that rot). Generation runs receive the map
+directly and the `appqe-project-conventions` skill renders it for the agent;
+without a map, the agent is instructed to read existing tests first rather than
+assume. For the richer pass, `appqe conventions discover --deep` prints a
+worksheet your coding agent answers from the code; `appqe conventions accept`
+verifies every claim before it enters the map.
 
 ## The checks
 
@@ -218,14 +292,36 @@ Everything else in the repo — your tests, fixtures, CI — is yours.
 
 Before the engagement closes:
 
-1. `appqe doctor` — confirm a fresh clone can run the guardrails.
-2. `appqe coverage --kind api --detail` — hand over the measured number **and**
+1. **Deliver the CLI through a channel the client controls, and set
+   `install_command` in `appqe.yml` to the command that uses it.** This is the one
+   step that blocks everything else: the default install needs Slalom git
+   credentials, and the guardrail hooks fail closed, so without this a client
+   engineer on a fresh clone has every agent tool call refused and no fix in this
+   document. Attach the versioned wheel to their artifact registry, or vendor it in
+   the repo (`uv build` produces one; zero runtime dependencies, so the single file
+   installs air-gapped). Then re-run `appqe sync` so this file says the right thing.
+2. **Verify it as they will experience it:** in a fresh clone, with no Slalom
+   credentials, run the `install_command` and then `appqe doctor`.
+3. `appqe coverage --kind api --detail` - hand over the measured number **and**
    the named gaps, not a percentage.
-3. `appqe discovery` — walk the receiving team through the rules in force.
-4. Confirm the CLI install step above is in their onboarding docs; without it
-   the hooks block tool calls on a fresh clone.
+4. `appqe discovery` - walk the receiving team through the rules in force.
 5. Decide who owns `appqe.yml` — particularly `security.allowed_hosts` and
-   `allow_prod`, which are the guardrails against touching production.
+   `allow_prod`, which are the guardrails against touching production, and who may
+   move the coverage baseline (`--accept-baseline`), which is the quality ratchet.
+6. Agree who upgrades appqe. The version is pinned per project by whatever
+   `install_command` names; `appqe doctor` reports the version the deployed content
+   was generated by, so a drift between the two is visible.
+7. `appqe handover` - write the close-out report (`QE-CLOSE-OUT.md`). Run state and
+   telemetry live under `.git/appqe/`, which does not survive a fresh clone, so this
+   is the only form in which the engagement's record transfers: the gated coverage
+   position, the run history including what did not finish, and who inherits the
+   gates. Review it before sharing - it describes your engagement.
+8. If appqe is being removed rather than handed on: `appqe remove` un-wires the
+   project (content, hook entries, the `.gitignore` block) and `appqe remove --purge`
+   also deletes run state, `appqe.yml` and the coverage baseline. Both print exactly
+   what will go and ask first; `--dry-run` shows the plan and changes nothing. Your
+   tests are never touched. Run `appqe handover` **before** `--purge`, because the
+   report is rendered from the state it deletes.
 
 <!-- appqe:custom -->
 <!-- Anything between these markers survives `appqe sync`. Put project-specific
@@ -236,32 +332,31 @@ Before the engagement closes:
 ## Generating the Allure report
 
 The xUnit suite writes Allure results via `Allure.Xunit` (attributes from
-`GlobalUsing.cs`, output dir set in `allureConfig.json`). **Important:** Allure.Xunit
-writes relative to the *test binary*, so the results land in
-`bin/Debug/net9.0/allure-results/`, **not** the repo-root `allure-results/`. They also
-**accumulate across runs**, so clear the folder first for a report of just this run:
+`GlobalUsing.cs`, output dir set in `allureConfig.json`). Allure.Xunit writes
+relative to the *test binary*, so the results land in
+`bin/Debug/net9.0/allure-results/`, not the repo-root `allure-results/`, and they
+**accumulate across runs** - clear the folder first for a report of just this run:
 
 ```bash
 # 1. clean the results folder, then run the suite
 rm -rf bin/Debug/net9.0/allure-results
 dotnet test --settings coverlet.runsettings
 
-# 2a. quickest: build a temporary report and open it in a browser
-allure serve bin/Debug/net9.0/allure-results
-
-# 2b. …or keep the report as files (to publish or attach to a run)
-allure generate bin/Debug/net9.0/allure-results --clean -o allure-report
-allure open allure-report
+# 2. build the HTML report - appqe finds the newest allure-results itself
+appqe allure                 # writes .appqe/reports/allure/index.html
+appqe allure --serve         # or open it straight in a browser
 ```
 
+`appqe allure` locates `bin/Debug/net9.0/allure-results` on its own, runs the
+Allure CLI over it, and - if the Allure CLI is not installed - prints the exact
+install steps for your OS (`brew install allure` on macOS, Scoop / npm elsewhere).
+`dotnet test` only writes the raw results; `appqe allure` renders the report.
+
 Notes:
-- **Prerequisite:** the Allure CLI must be installed (`brew install allure` on macOS,
-  or Scoop / `allure-commandline` elsewhere). `dotnet test` only writes the raw
-  results; the CLI renders the report.
-- Assertion failures show as **Broken** (not Failed) in Allure — the suite's
+- Assertion failures show as **Broken** (not Failed) in Allure - the suite's
   `utils/AllureReportUtils` collects assertions and throws one `AggregateException`,
   which Allure categorises as broken. The step log still lists each failed assertion.
 - Trend/history across runs is wired through `utils/AllureHistoryFixture`.
-- The `allure` executable is on the guardrail allowlist
-  (`security.allowed_commands` in `appqe.yml`), so these commands are permitted.
+- `appqe allure` runs through the `appqe` CLI, which is on the guardrail allowlist,
+  so the report step is permitted with no extra config.
 <!-- /appqe:custom -->

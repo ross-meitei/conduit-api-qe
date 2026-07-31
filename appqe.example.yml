@@ -81,6 +81,7 @@ security:
   allow_prod: false
   allowed_hosts:
     - api.realworld.show        # base_url hosts are auto-allowed; this is explicit
+    - slalom.atlassian.net
   # blocked_hosts: []           # hosts always treated as never-hit
   prod_markers:
     - prod
@@ -115,7 +116,7 @@ token_economy:
 # value here, re-run `appqe sync` for it to take effect (a fresh chat/session then
 # picks up the new selection).
 models:
-  coordinator: haiku
+  coordinator: opus
   tiers:                        # a worker's model comes from its role's tier
     light: haiku                # fetch & survey roles
     standard: sonnet            # audit, map, diff, review, triage roles

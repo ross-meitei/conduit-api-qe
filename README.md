@@ -38,12 +38,14 @@ dotnet test --settings coverlet.runsettings
 
 Allure results land in **`bin/Debug/net9.0/allure-results/`** (Allure.Xunit writes
 relative to the test binary, not the repo root), and **accumulate across runs**.
-Generate a report from them with the Allure CLI:
+Generate a report from them with `appqe allure` (it finds the results, runs the
+Allure CLI, and prints install steps if that CLI is missing):
 
 ```bash
 rm -rf bin/Debug/net9.0/allure-results          # clean, so the report is just this run
 dotnet test --settings coverlet.runsettings
-allure serve bin/Debug/net9.0/allure-results     # temp report; opens in a browser
+appqe allure --serve                            # temp report; opens in a browser
+# appqe allure                                  # or write .appqe/reports/allure/index.html
 ```
 
 See **QE.md → "Generating the Allure report"** for the full workflow (persisting the
