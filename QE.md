@@ -1,4 +1,4 @@
-<!-- appqe:managed v0.5.5 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.5.8 | do-not-edit-manually | regenerate: appqe sync -->
 # QE setup — conduit-api-qe
 
 How the agentic QE workflow in this repo is set up, how to use it, and what to
@@ -17,7 +17,7 @@ silently unguarded. Get set up:
 
 ```bash
 uv tool install "appqe @ git+https://github.com/Slalom/appqe.git"   # or pipx / pip install "appqe[openapi]"
-appqe --version                  # expect: 0.5.5
+appqe --version                  # expect: 0.5.8
 appqe doctor                     # verifies wiring in this project
 ```
 
@@ -32,10 +32,10 @@ appqe doctor                     # verifies wiring in this project
 >
 > ```yaml
 > # a versioned wheel on the client's own package index
-> install_command: "pip install appqe==0.5.5 --index-url https://nexus.example.com/simple"
+> install_command: "pip install appqe==0.5.8 --index-url https://nexus.example.com/simple"
 > # ...or a wheel delivered with the project (works air-gapped; appqe has zero
 > #    runtime dependencies, so the single file is the whole install)
-> install_command: "uv tool install ./vendor/appqe-0.5.5-py3-none-any.whl"
+> install_command: "uv tool install ./vendor/appqe-0.5.8-py3-none-any.whl"
 > ```
 >
 > The wheel for a release is attached to its GitHub Release; `uv build` produces one

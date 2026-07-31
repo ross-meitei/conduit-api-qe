@@ -1,1 +1,7 @@
-{}
+{
+  "workbench.editorAssociations": {
+    "**/.appqe/plans/*.md": "vscode.markdown.preview.editor",
+    "**/.appqe/reports/*.md": "vscode.markdown.preview.editor",
+    "**/.appqe/runs/*-progress.md": "vscode.markdown.preview.editor"
+  }
+}
