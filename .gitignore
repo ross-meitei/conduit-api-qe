@@ -23,4 +23,5 @@ allure-report/
 .appqe/telemetry/
 .appqe/.session/
 env/.env
+a11y-results/
 # /appqe

@@ -116,11 +116,11 @@ token_economy:
 # value here, re-run `appqe sync` for it to take effect (a fresh chat/session then
 # picks up the new selection).
 models:
-  coordinator: haiku
+  coordinator: opus
   tiers:                        # a worker's model comes from its role's tier
     light: haiku                # fetch & survey roles
-    standard: haiku            # audit, map, diff, review, triage roles
-    deep: haiku                # generation & root-cause roles
+    standard: sonnet            # audit, map, diff, review, triage roles
+    deep: sonnet                # generation & root-cause roles
   # Per-role model override. Default `{}` = every role uses its tier (above).
   # Nameable roles, grouped by the tier they default to:
   #   light    -> context_gather, bug_fetch, linked_bugs, endpoint_survey, flow_survey,

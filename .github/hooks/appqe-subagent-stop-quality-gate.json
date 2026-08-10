@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "type": "command",
+        "command": "./.github/hooks/scripts/appqe-quality-gate.sh",
+        "timeout": 15,
+        "windows": "powershell -File ./.github/hooks/scripts/appqe-quality-gate.ps1"
+      }
+    ]
+  }
+}
