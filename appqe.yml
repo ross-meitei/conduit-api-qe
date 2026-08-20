@@ -24,7 +24,7 @@ api_language: "C#"
 api:
   openapi_path: specs/openapi.json
   base_url: https://api.realworld.show/api   # public demo backend (non-prod)
-  tests_dir: tests/api
+  tests_dir: tests
   auth_scheme: "Token JWT (Authorization: Token <jwt>)"
 
 # ── Context sources: where the *requirements* live ────────────────────
