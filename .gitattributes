@@ -1,0 +1,3 @@
+# appqe: merge findings by meaning, not by line. Without this a
+# finding two people recorded independently merges to one sighting.
+**/okf/findings/*/*.md merge=appqe-okf

@@ -24,4 +24,6 @@ allure-report/
 .appqe/.session/
 env/.env
 a11y-results/
+**/okf/findings/index.md
 # /appqe
+temp/
