@@ -1,4 +1,4 @@
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
 # conduit-api-qe - QE standards
 
 Repo-wide standards for **conduit-api-qe**. These apply to every request in
@@ -6,7 +6,7 @@ this repository, whether or not the appqe agent is selected.
 
 ## The spec is the source of truth
 
-API behaviour is defined by `specs/openapi.json`. Assume nothing it does not
+API behaviour is defined by `specs/openapi.yaml`. Assume nothing it does not
 state. If the implementation disagrees with the spec, that is a finding to raise
 - not a detail to quietly encode into a test.
 
@@ -85,6 +85,33 @@ Read the discovery log before starting; append durable findings after. Stop at
 approval gates and ask with concrete options. Coverage below
 80% is reported in the first line of a summary,
 never buried.
+
+## QE work starts a run, before anything else
+
+A request for tests, coverage, contract drift, a flake, a retest or a migration
+goes to appqe **first** - before reading the spec, the suite or anything else,
+because discovery is a phase of the run and doing it by hand does it twice:
+
+```
+appqe start "<their words, verbatim>"
+```
+
+Do not choose the mode; the router does, deterministically, and reports what it
+chose. Do not write or edit test files for such a request - that is what the run
+is for, with a plan the user approves and evidence per step.
+
+The procedure is already written for this project - read the entry point that
+matches rather than reinventing it, and pass the user's actual words rather than
+the generic request the file carries:
+
+- `/appqe-audit-coverage` - Audit API/UI test coverage against the spec and app, and report prioritized gaps.
+- `/appqe-contract-check` - Check existing tests against the current OpenAPI spec for contract drift.
+- `/appqe-generate-api-tests` - Generate API tests from the OpenAPI spec into the project's stack.
+- `/appqe-investigate` - Investigate a failing API or UI test and deliver a root-cause verdict.
+
+`appqe-workflow-routing.instructions.md` has the full intent table, the bounds
+(application code and ordinary questions are answered normally), and what
+enforces this.
 
 ## Project instructions
 

@@ -2,6 +2,7 @@
 name: appqe-openapi-parse
 description: 'Build the endpoint inventory that drives API test generation, and flag the spec defects a parser cannot decide.'
 metadata: {version: 1.0.0, access: read-only}
+user-invocable: false
 ---
 # Skill: The endpoint inventory
 
@@ -10,7 +11,7 @@ appqe openapi --json     # the full inventory
 appqe openapi            # one line per operation
 ```
 
-That is the whole procedure. It loads `specs/openapi.json`, resolves `$ref`s,
+That is the whole procedure. It loads `specs/openapi.yaml`, resolves `$ref`s,
 and emits one row per operation - operationId, tags, parameters, request schema,
 every documented response with its schema, and whether auth is required
 (`[auth]`) or optional (`[auth?]`). Ordering is deterministic so two runs diff
@@ -34,4 +35,4 @@ If the spec is only reachable by URL, fetch it to a local file and point
 `api.openapi_path` at that copy - a spec that can change mid-run makes the run
 unreproducible.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

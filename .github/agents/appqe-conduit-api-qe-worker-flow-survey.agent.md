@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — walks the UI flows under test by OPENING the pages through the wired browser binding and returns the observed screens, steps and actions. Read-only. Spawned by the appqe-agent coordinator as a subagent; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-flow-survey
+description: '[INTERNAL] appqe worker — walks the UI flows under test by OPENING the pages through the wired browser binding and returns the observed screens, steps and actions. Read-only. Spawn this agent for those steps - it is the coordinator''s to dispatch. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-flow-survey
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -25,7 +25,8 @@ surveys are the light `appqe-worker-discovery`; do not do their roles here.
 ## What you are given
 
 - `role` — `flow_survey` or `journey_map`.
-- `context.role_brief` — what to return; `context.entities` — the scope;
+- `context.role_brief` — what to return, plus any `DONE WHEN:` stating the
+  step's definition of done; `context.entities` — the scope;
   `context.mode` — the workflow.
 
 ## How to work, by role
@@ -78,7 +79,7 @@ that is a later step, for another worker or the coordinator.
 
 ## What you return
 
-- **`worker`** — `appqe-worker-flow-survey`, verbatim. It is how the coordinator's
+- **`worker`** — `appqe-conduit-api-qe-worker-flow-survey`, verbatim. It is how the coordinator's
   result says which worker answered; a delegated step whose result does not name its
   worker is rejected and sent back, because a step run somewhere else was run with
   other tools.
@@ -106,4 +107,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

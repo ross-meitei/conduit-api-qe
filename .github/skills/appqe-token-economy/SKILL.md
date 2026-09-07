@@ -2,6 +2,7 @@
 name: appqe-token-economy
 description: 'Cut token spend on long QE runs without losing technical precision - compressed prose, staged data, no re-reads. Use on multi-phase runs, large specs, or when asked to be brief.'
 metadata: {version: 1.0.0, access: read-only}
+user-invocable: false
 ---
 # Skill: Token economy
 
@@ -47,4 +48,4 @@ brevity creates ambiguity. Resume compression afterwards.
 
 A compressed reply that has to be re-explained cost more than the verbose one.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

@@ -3,7 +3,7 @@
   "defaultVariables": null,
   "documentGenerator": {
     "fromDocument": {
-      "url": "specs/openapi.json",
+      "url": "specs/openapi.yaml",
       "output": null
     }
   },

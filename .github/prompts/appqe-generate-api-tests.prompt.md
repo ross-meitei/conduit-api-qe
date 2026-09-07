@@ -2,9 +2,9 @@
 description: 'Generate API tests from the OpenAPI spec into the project''s stack.'
 agent: appqe-conduit-api-qe
 ---
-Generate API tests for **conduit-api-qe** from `specs/openapi.json`.
+Generate API tests for **conduit-api-qe** from `specs/openapi.yaml`.
 
-Drive it through the orchestrator: `appqe start "generate api tests from the
+Drive it through the orchestrator: `appqe start --mode api_generation "generate api tests from the
 openapi spec"`, then execute each phase and `appqe resume` with results.
 
 > **⛔ Output:** every `appqe start`/`resume` prints a finished, emoji-formatted
@@ -18,4 +18,4 @@ openapi spec"`, then execute each phase and `appqe resume` with results.
 - Stop at the **plan** gate for approval before generating, and at the
   **generated-test review** gate before considering them final.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

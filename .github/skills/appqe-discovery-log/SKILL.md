@@ -2,6 +2,7 @@
 name: appqe-discovery-log
 description: 'Institutional QE memory - read before a run, append durable findings after. Carries auth quirks, flaky causes, and spec gotchas across sessions.'
 metadata: {version: 1.0.0, access: authoring}
+user-invocable: false
 ---
 # Skill: Discovery log
 
@@ -106,4 +107,4 @@ One finding per doc, filed under its area (endpoint or flow) - that is the
 record the resolution rather than deleting the doc - knowing something *was*
 broken explains an old workaround.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

@@ -2,6 +2,7 @@
 name: appqe-coverage-audit
 description: 'Measure endpoint coverage, and report the gaps in the order that matters.'
 metadata: {version: 1.0.0, access: research}
+user-invocable: false
 ---
 # Skill: Coverage audit
 
@@ -34,4 +35,4 @@ threshold: an absolute gate is red on day one and gets switched off, which
 enforces nothing. Move the baseline deliberately with `--accept-baseline` and
 commit the diff.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

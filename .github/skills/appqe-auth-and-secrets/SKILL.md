@@ -2,6 +2,7 @@
 name: appqe-auth-and-secrets
 description: 'Handle authentication in tests without hardcoding secrets, and keep captured responses clean.'
 metadata: {version: 1.0.0, access: read-only}
+user-invocable: false
 ---
 # Skill: Auth & secrets handling
 
@@ -76,4 +77,4 @@ The block is the finding. A hardcoded secret that a hook caught is a secret that
 would otherwise have reached the repository. Move it to env, and note in the
 discovery log where it came from.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

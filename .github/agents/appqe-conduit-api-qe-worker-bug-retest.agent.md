@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — runs against the system and captures exact behavioural evidence: reproduces a reported failure, and re-runs a fixed bug''s tests to report whether the fix holds. Spawned by the appqe-agent coordinator as a subagent during investigation and bug-retest runs; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-bug-retest
+description: '[INTERNAL] appqe worker — runs against the system and captures exact behavioural evidence: reproduces a reported failure, and re-runs a fixed bug''s tests to report whether the fix holds. Spawned by the appqe-agent coordinator as a subagent during investigation and bug-retest runs; not user-facing. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-bug-retest
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -42,7 +42,7 @@ read the result.
 
 ## What you return
 
-- **`worker`** — `appqe-worker-bug-retest`, verbatim. It is how the coordinator's result
+- **`worker`** — `appqe-conduit-api-qe-worker-bug-retest`, verbatim. It is how the coordinator's result
   says which worker answered; a delegated step whose result does not name its worker is
   rejected and sent back, because a step run somewhere else was run with other
   tools.
@@ -71,4 +71,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

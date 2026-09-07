@@ -2,6 +2,7 @@
 name: appqe-project-conventions
 description: 'This project''s own test seams - the client factory, test-data builder, helpers and UI layout recorded in .appqe/conventions.yml. Build on these; never scaffold a parallel version.'
 metadata: {version: 1.0.0, access: authoring}
+user-invocable: false
 ---
 # Skill: conduit-api-qe's test conventions
 
@@ -21,4 +22,4 @@ Then record what you confirmed so the next run skips this archaeology:
 --deep` for the worksheet you can answer from the code and submit with
 `appqe conventions accept`.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

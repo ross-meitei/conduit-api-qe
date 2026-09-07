@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — audits existing test coverage against the spec/inventory, maps what is covered, finds the gaps in risk order, and diffs tests against the current spec. Spawned by the appqe-agent coordinator as a subagent; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-gap-analysis
+description: '[INTERNAL] appqe worker — audits existing test coverage against the spec/inventory, maps what is covered, finds the gaps in risk order, and diffs tests against the current spec. Spawn this agent for those steps - it is the coordinator''s to dispatch. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-gap-analysis
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -45,7 +45,7 @@ the gaps; the plan is the coordinator's.
 
 ## What you return
 
-- **`worker`** — `appqe-worker-gap-analysis`, verbatim. It is how the coordinator's result
+- **`worker`** — `appqe-conduit-api-qe-worker-gap-analysis`, verbatim. It is how the coordinator's result
   says which worker answered; a delegated step whose result does not name its worker is
   rejected and sent back, because a step run somewhere else was run with other
   tools.
@@ -73,4 +73,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

@@ -9,7 +9,10 @@
 $ErrorActionPreference = 'SilentlyContinue'
 # --plain: bare text instead of the JSON envelope, for a host that adds hook
 # stdout to context verbatim (Kiro). Passed by the deployed hook config.
-$Plain = $args -contains '--plain'
+$Shape = ''
+if ($args -contains '--plain') { $Shape = 'plain' }
+$i = [array]::IndexOf($args, '--shape')
+if ($i -ge 0 -and $i + 1 -lt $args.Count) { $Shape = $args[$i + 1] }
 . (Join-Path $PSScriptRoot 'appqe-resolve.ps1')
 $appqeRoot = Get-AppqeProjectRoot $PSScriptRoot
 $payload = [Console]::In.ReadToEnd()
@@ -30,16 +33,17 @@ $cmd = ""; $tool = ""
 if ($payload -match '"command"\s*:\s*"((?:\\.|[^"\\])*)"') { $cmd = $Matches[1] }
 if ($payload -match '"tool_name"\s*:\s*"((?:\\.|[^"\\])*)"') { $tool = $Matches[1] }
 if ($cmd -match 'appqe (start|resume)' -or $tool -match '^(app)?qe_(start|resume)$') {
-  $session = ""
-  if ($payload -match '"session_id"\s*:\s*"([^"]*)"') { $session = $Matches[1] }
-  # Cursor names it conversation_id (see the .sh twin).
-  if (-not $session -and $payload -match '"conversation_id"\s*:\s*"([^"]*)"') { $session = $Matches[1] }
-  $session = ($session -replace '[^A-Za-z0-9._-]', '')
+  # Shared with the stop hook, which READS the stamps written below - the two
+  # must agree on the key or attribution silently breaks (see the .sh twin).
+  $session = Get-AppqeSessionId $payload
+  # "default" is not attributable: every anonymous session would inherit every
+  # other one's runs. The shared helper returns it; ownership must not use it.
+  if ($session -eq "default") { $session = "" }
   if ($session) {
     $project = ($appqeRoot -replace '[^A-Za-z0-9._-]', '')
     if ($project.Length -gt 60) { $project = $project.Substring($project.Length - 60) }
     if (-not $project) { $project = "project" }
-    $markerDir = Join-Path ([System.IO.Path]::GetTempPath()) "appqe-session"
+    $markerDir = Get-AppqeSessionDir $appqeRoot
     New-Item -ItemType Directory -Force -Path $markerDir | Out-Null
     # Ids ONLY from the command and from "run_id" keys - never free response
     # text, whose "Awaiting runs"/refusal listings name other sessions' runs.
@@ -59,11 +63,16 @@ function Emit-Context([string] $text) {
   # Claude Code caps hook output strings, additionalContext included, at 10,000
   # characters. Truncate rather than have a long run's block dropped wholesale.
   if ($text.Length -gt 9500) { $text = $text.Substring(0, 9500) }
-  if ($Plain) {
+  if ($Shape -eq 'plain') {
     $text
     exit 0
   }
   # ConvertTo-Json handles the escaping, and -Compress keeps it one line.
+  # Cursor reads a top-level `additional_context`; the others read the envelope.
+  if ($Shape -eq 'cursor') {
+    ConvertTo-Json ([ordered]@{ additional_context = $text }) -Depth 5 -Compress
+    exit 0
+  }
   $doc = [ordered]@{
     hookSpecificOutput = [ordered]@{
       hookEventName    = 'PostToolUse'
@@ -94,14 +103,22 @@ relay-status text at the run opening, ``progress.line`` on every batch after.
 
 # Nudge the panel refresh, but do not paste the array back - re-emitting "Step 1 ..
 # Step N" every turn only feeds step-number chatter. One line, no dump.
-$todos = & $appqe --project-root $appqeRoot progress --todos 2>$null
-if ($todos -and $todos -ne '[]' -and $todos -notmatch '^\[!!\]') {
+#
+# One call, not two: the target line is empty exactly when there are no todos to
+# write, so its emptiness answers "is there a panel to refresh" as well. And the
+# nudge names a number the agent can CHECK against the widget in front of it -
+# "write the whole array" is advice it cannot verify it followed, which is how a
+# panel sat at 4-of-13 while appqe handed over 13 correct items.
+$target = (& $appqe --project-root $appqeRoot progress --todos --panel-target 2>$null) -join ''
+if ($target -and $target -notmatch '^\[!!\]') {
   $msg = $msg + @"
 
 
 Then refresh the task-list panel from this batch's ``progress.todos`` - write the
 whole array, replacing the old list, so the widget matches the run and is not a
 phase behind. Do not narrate step numbers in your reply; the panel names them.
+**After writing it the panel must read exactly: $target.** Compare it; if it
+does not match, you did not write this batch's array - write it again now.
 "@
 }
 Emit-Context $msg

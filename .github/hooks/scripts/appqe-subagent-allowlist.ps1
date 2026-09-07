@@ -4,6 +4,27 @@ $appqeRoot = Get-AppqeProjectRoot $PSScriptRoot
 $payload = [Console]::In.ReadToEnd()
 # Containment: a foreign session's subagents follow their own project's rules.
 if (Test-AppqeEventIsForeign $payload $appqeRoot) { exit 0 }
+
+# --- delegation enforcement: mark this session as running a subagent ---------
+# PreToolUse carries no agent identifier, so the guard cannot tell a worker's own
+# run of a command from the coordinator's. SubagentStart/Stop do carry agent_id,
+# so the pair leaves a marker and the guard reads it. Without this the worker
+# would be refused the very command it was spawned to run.
+function Get-AppqeSubagentMarker([string]$p) {
+  $m = [regex]::Match($p, '"session_id"\s*:\s*"([^"]*)"')
+  if (-not $m.Success) { return $null }
+  $sid = ($m.Groups[1].Value -replace '[^A-Za-z0-9._-]', '')
+  if (-not $sid) { return $null }
+  $dir = Join-Path ([System.IO.Path]::GetTempPath()) 'appqe-session'
+  New-Item -ItemType Directory -Force -Path $dir -ErrorAction SilentlyContinue | Out-Null
+  Join-Path $dir "subagent-$sid"
+}
+
+# Append, never overwrite: subagents can nest or overlap, and a marker cleared by
+# the first to finish would unguard the others.
+$marker = Get-AppqeSubagentMarker $payload
+if ($marker) { Add-Content -Path $marker -Value 'x' -ErrorAction SilentlyContinue }
+
 # The briefing states the ENFORCED policy exactly (command_policy.py) - see
 # the sh twin's comment; user-visible sentences must match across twins.
 $ctx = 'Command allowlist: subagents may ONLY run, via the project package manager: ' +

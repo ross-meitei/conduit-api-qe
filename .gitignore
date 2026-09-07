@@ -22,6 +22,9 @@ allure-report/
 .appqe/runs/
 .appqe/telemetry/
 .appqe/.session/
+.appqe/locks/
+.appqe/temp/
+.appqe/reports/
 env/.env
 a11y-results/
 **/okf/findings/index.md

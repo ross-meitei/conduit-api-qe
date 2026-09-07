@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — runs the test suite and the coverage measurement, writes the machine-readable report, and returns a compact outcome. A bounded execute-and-capture task, deliberately on a cheap tier so a large test log never lands on the coordinator. Spawned by the appqe-agent coordinator as a subagent; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-test-run
+description: '[INTERNAL] appqe worker — runs the test suite and the coverage measurement, writes the machine-readable report, and returns a compact outcome. A bounded execute-and-capture task, deliberately on a cheap tier so a large test log never lands on the coordinator. Spawn this agent for those steps - it is the coordinator''s to dispatch. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-test-run
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -27,9 +27,15 @@ exists on disk. Do not "conclude" the suite is green from stdout.
 ## What you are given
 
 - `role` — `run_tests` or `coverage`.
-- `context.command` (or the action's `inputs.command`) — the exact command to run
-  when one is provided (e.g. the coverage measurement). When none is given, use the
-  stack's configured runner below.
+- `context.assignment` — a path to **your** assignment file, and the first thing
+  to read. It holds `command`, the exact command to run, plus the evidence this
+  step owes. The command is deliberately NOT in the payload the coordinator was
+  handed: a step that arrives with a runnable command in hand gets run in place,
+  measured on every such step of two live runs, so appqe now puts it where only
+  the worker is told to look. Read the file, run the `command` in it verbatim.
+- `context.command` (or the action's `inputs.command`) — the older shape, still
+  honoured when the assignment file could not be written. When neither is given,
+  use the stack's configured runner below.
 - `context.mode` — the workflow, and whether the target is API or UI.
 
 ## How to work, by role
@@ -62,7 +68,7 @@ invocation), report that; never "fix" the suite to make it pass.
 
 ## What you return
 
-- **`worker`** — `appqe-worker-test-run`, verbatim. It is how the coordinator's result
+- **`worker`** — `appqe-conduit-api-qe-worker-test-run`, verbatim. It is how the coordinator's result
   says which worker answered; a delegated step whose result does not name its worker is
   rejected and sent back, because a step run somewhere else was run with other
   tools.
@@ -98,4 +104,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

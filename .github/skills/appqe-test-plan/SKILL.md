@@ -2,6 +2,7 @@
 name: appqe-test-plan
 description: 'Write the test plan to a reviewable markdown file and open it for the user before generating anything. Use at the plan approval gate of any generation run.'
 metadata: {version: 1.0.0, access: authoring}
+user-invocable: false
 ---
 # Skill: Test plan document
 
@@ -75,4 +76,4 @@ one line and re-confirm before generating.
 Record the approved plan path in the run so `appqe-run-report` can cite what was
 agreed versus what was delivered.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

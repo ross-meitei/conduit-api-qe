@@ -2,6 +2,7 @@
 name: appqe-api-test-authoring
 description: 'Author API tests in the project''s stack from the endpoint inventory - Arrange-Act-Assert, one behaviour per test, complete assertions.'
 metadata: {version: 1.0.0, access: authoring}
+user-invocable: false
 ---
 # Skill: Author API tests
 
@@ -93,4 +94,4 @@ Test: CreateArticle_MissingTitle_Returns422
             response.body.errors contains "title"     # the point of this case
 ```
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

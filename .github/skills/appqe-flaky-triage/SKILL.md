@@ -2,6 +2,7 @@
 name: appqe-flaky-triage
 description: 'Diagnose and fix flaky API/UI tests - distinguish real defects from timing/data/isolation flakiness.'
 metadata: {version: 1.0.0, access: research}
+user-invocable: false
 ---
 # Skill: Flaky-test triage
 
@@ -40,4 +41,4 @@ date. A quarantined test with no bug is a deleted test with extra steps.
 Record the cause and the fix in the discovery log - flaky causes recur, and the
 next run should not re-diagnose one you have already solved.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

@@ -2,6 +2,7 @@
 name: appqe-run-report
 description: 'Close out a QE run - combine appqe telemetry with the actual QE outcome into a report a client can read. Use at the end of a run or when asked "what happened".'
 metadata: {version: 1.0.0, access: research}
+user-invocable: false
 ---
 # Skill: Run report
 
@@ -63,4 +64,4 @@ give the `run_id` so it can be resumed.
 
 Redact tokens, credentials, and customer identifiers from any quoted output.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

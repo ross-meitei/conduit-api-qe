@@ -16,8 +16,11 @@ set -u
 # stdout to the agent's context verbatim (Kiro) - there the JSON envelope
 # would arrive as a blob wrapped around the words. Passed by the deployed
 # hook config, never guessed here.
-PLAIN=""
-case "${1:-}" in --plain) PLAIN=1 ;; esac
+SHAPE=""
+case "${1:-}" in
+  --plain) SHAPE="plain" ;;
+  --shape) SHAPE="${2:-}" ;;
+esac
 _HOOKDIR="$(dirname "$0")"
 . "$_HOOKDIR/appqe-resolve.sh"
 APPQE_ROOT="$(appqe_project_root "$_HOOKDIR")"
@@ -60,14 +63,16 @@ cmd="$(printf '%s' "$payload" | grep -oE '"command"[[:space:]]*:[[:space:]]*"(\\
 tool="$(printf '%s' "$payload" | grep -oE '"tool_name"[[:space:]]*:[[:space:]]*"(\\.|[^"\\])*"' | head -1)"
 case "$cmd|$tool" in
   *"appqe start"*|*"appqe resume"*|*"appqe_start"*|*"appqe_resume"*|*"qe_start"*|*"qe_resume"*)
-    session="$(printf '%s' "$payload" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | tr -cd 'A-Za-z0-9._-')"
-    # Cursor names it conversation_id; without the fallback, ownership
-    # stamping was silently dead there and every run read as another
-    # session's (found by the cursor completeness sweep).
-    [ -n "$session" ] || session="$(printf '%s' "$payload" | sed -n 's/.*"conversation_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    # Shared with the stop hook, which READS the stamps written below - the two
+    # must agree on the key or attribution silently breaks (appqe-resolve.sh).
+    session="$(appqe_session_id "$payload")"
+    # `default` is not attributable: every anonymous session would inherit every
+    # other one's runs. Preserved from the original explicitly, because the
+    # shared helper returns `default` rather than an empty string.
+    case "$session" in default) session="" ;; esac
     project="$(printf '%s' "${APPQE_ROOT:-$PWD}" | tr -cd 'A-Za-z0-9._-' | tail -c 60)"
     if [ -n "$session" ]; then
-      marker_dir="${TMPDIR:-/tmp}/appqe-session"
+      marker_dir="$(appqe_session_dir "$APPQE_ROOT")"
       # Harvest ids ONLY from the command that ran and from `"run_id"` keys.
       # Never from free response text: `appqe start`'s own output can NAME other
       # sessions' runs ("Awaiting runs: ...", the duplicate-run refusal list),
@@ -95,7 +100,7 @@ json_escape() {
 }
 
 emit() {
-  if [ -n "$PLAIN" ]; then
+  if [ "$SHAPE" = "plain" ]; then
     # head -c caps the TOTAL, matching the intent; cut -c would cap each line.
     printf '%s\n' "$1" | head -c 9500
     exit 0
@@ -104,6 +109,13 @@ emit() {
   # characters. Truncating here keeps a long run's block from being dropped
   # wholesale at the far end.
   escaped="$(printf '%s' "$1" | cut -c1-9500 | json_escape)"
+  # Cursor's postToolUse reads a top-level `additional_context`; Claude Code and
+  # Copilot read the hookSpecificOutput envelope. Wrong shape = ignored,
+  # silently, which is what Cursor got until 0.14.
+  if [ "$SHAPE" = "cursor" ]; then
+    printf '{"additional_context":"%s"}\n' "$escaped"
+    exit 0
+  fi
   printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"%s"}}\n' \
     "$escaped"
   exit 0
@@ -127,15 +139,24 @@ relay-status text at the run opening, \`progress.line\` on every batch after."
 # current \`progress.todos\`; nudge the agent to write it, but do not paste the array
 # back - re-emitting "Step 1 … Step N" every turn only feeds step-number chatter into
 # the reply. One line, no dump.
-todos="$("$APPQE" --project-root "$APPQE_ROOT" progress --todos 2>/dev/null)" || todos=""
-case "$todos" in
-  ""|"[]"|"[!!]"*) ;;
+# One call, not two: the target line is empty exactly when there are no todos to
+# write, so its emptiness answers "is there a panel to refresh" as well. This hook
+# runs on every tool batch, so a spare interpreter start is a spare start per batch.
+target="$("$APPQE" --project-root "$APPQE_ROOT" progress --todos --panel-target 2>/dev/null)" || target=""
+case "$target" in
+  ""|"[!!]"*) ;;
   *)
+    # The nudge names a number the agent can CHECK against the widget in front of
+    # it. "Write the whole array" is advice it cannot verify it followed - a panel
+    # measured at 4-of-13 while appqe handed over 13 correct items is the failure
+    # this closes: the payload was right and nobody could tell the panel was wrong.
     msg="$msg
 
 Then refresh the task-list panel from this batch's \`progress.todos\` - write the
 whole array, replacing the old list, so the widget matches the run and is not a
-phase behind. Do not narrate step numbers in your reply; the panel names them."
+phase behind. Do not narrate step numbers in your reply; the panel names them.
+**After writing it the panel must read exactly: $target.** Compare it; if it
+does not match, you did not write this batch's array - write it again now."
     ;;
 esac
 emit "$msg"

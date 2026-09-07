@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — generates the test files in the project stack from the approved plan, to the project standards. Spawned by the appqe-agent coordinator as a subagent after the plan gate; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-generation
+description: '[INTERNAL] appqe worker — generates the test files in the project stack from the approved plan, to the project standards. Spawned by the appqe-agent coordinator as a subagent after the plan gate; not user-facing. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-generation
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -70,7 +70,7 @@ re-edited while nothing had flagged it. So:
 
 ## What you return
 
-- **`worker`** — `appqe-worker-generation`, verbatim. It is how the coordinator's result
+- **`worker`** — `appqe-conduit-api-qe-worker-generation`, verbatim. It is how the coordinator's result
   says which worker answered; a delegated step whose result does not name its worker is
   rejected and sent back, because a step run somewhere else was run with other
   tools.
@@ -102,4 +102,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

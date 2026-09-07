@@ -86,3 +86,41 @@ appqe_event_is_foreign() {
   case "$_rootr/" in "$_cwd"/*) return 1 ;; esac
   return 0
 }
+
+# The id that makes "once per session" mean once. Reported on Cursor (#138): the
+# stop nudge fired after EVERY response instead of once, and measured, only two
+# things produce that - a marker key that changes per turn, or a marker that does
+# not persist. Both are addressed here so the two hooks that share these markers
+# cannot drift apart on either.
+#
+# `conversation_id` FIRST, deliberately. Cursor names the conversation that, and a
+# host that ALSO sends a per-REQUEST `session_id` re-keys the marker on every turn
+# when session_id is read first - which turns a once-per-session handoff into
+# per-turn noise. Preferring the conversation is correct on every host: where only
+# `session_id` exists it is still the session.
+appqe_session_id() {
+  _id="$(printf '%s' "${1:-}" | sed -n 's/.*"conversation_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+  [ -n "$_id" ] || _id="$(printf '%s' "${1:-}" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+  # Never build a path out of unsanitised input: this comes straight from the hook
+  # payload, so a `../` in it would write the marker outside the marker directory.
+  _id="$(printf '%s' "$_id" | tr -cd 'A-Za-z0-9._-')"
+  [ -n "$_id" ] || _id="default"
+  printf '%s' "$_id"
+}
+
+# Where a once-per-session marker lives. `.git/appqe/` when there is a repo,
+# because a marker has to survive between two turns of one session and a
+# sandboxed or per-invocation $TMPDIR does not - the second cause of #138.
+#
+# Still outside the working tree, which is why these were moved out of `.appqe/`
+# in the first place: under `.appqe/` they surfaced in the file explorer and in
+# `git status`. `.git/` does neither, and run telemetry already lives there.
+# No repo (a scaffolded folder, a test fixture) falls back to $TMPDIR, so the
+# containment guarantees the traversal test pins are unchanged.
+appqe_session_dir() {
+  if [ -d "${1:-}/.git" ]; then
+    printf '%s' "${1}/.git/appqe/session"
+  else
+    printf '%s' "${TMPDIR:-/tmp}/appqe-session"
+  fi
+}

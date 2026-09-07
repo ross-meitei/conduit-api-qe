@@ -1,5 +1,18 @@
 # Stop - refuse the first attempt to end a session without offering next steps.
 . "$PSScriptRoot\appqe-resolve.ps1"
+# Cursor reads a `followup_message` on stdout for `stop`; every other host
+# reads stderr and takes exit 2 as "hand control back to the model". See the
+# .sh twin for why this is emitted rather than verified.
+$Shape = ''
+$i = [array]::IndexOf($args, '--shape')
+if ($i -ge 0 -and $i + 1 -lt $args.Count) { $Shape = $args[$i + 1] }
+function Exit-AppqeStop {
+  if ($Shape -eq 'cursor') {
+    ConvertTo-Json ([ordered]@{ followup_message = 'appqe: one step left before this session ends - give the user their next steps, drawn from the current run state.' }) -Compress
+    exit 0
+  }
+  Exit-AppqeStop
+}
 $appqeRoot = Get-AppqeProjectRoot $PSScriptRoot
 $appqe = Resolve-Appqe
 # Refresh the telemetry dashboard so every session leaves a readable record. The
@@ -10,14 +23,8 @@ if ($appqe) { & $appqe --project-root $appqeRoot dashboard *> $null }
 $payload = [Console]::In.ReadToEnd()
 # Containment: a foreign session's stop is not this project's to prompt.
 if (Test-AppqeEventIsForeign $payload $appqeRoot) { exit 0 }
-$session = "default"
-if ($payload -match '"session_id"\s*:\s*"([^"]*)"') { $session = $Matches[1] }
-# Cursor names it conversation_id (see the .sh twin).
-if ($session -eq "default" -and $payload -match '"conversation_id"\s*:\s*"([^"]*)"') { $session = $Matches[1] }
-# Never build a path out of unsanitised input: this comes straight from the hook
-# payload, so a "..\" in it would write the marker outside the temp directory.
-$session = ($session -replace '[^A-Za-z0-9._-]', '')
-if (-not $session) { $session = "default" }
+# One derivation, shared with the progress-block hook - see the .sh twin.
+$session = Get-AppqeSessionId $payload
 # Outside the repo: a once-per-session marker is not a project artifact.
 #
 # Namespaced per project as well as per session: keyed on the session alone with a
@@ -27,7 +34,7 @@ $projectRoot = $appqeRoot
 $project = ($projectRoot -replace '[^A-Za-z0-9._-]', '')
 if ($project.Length -gt 60) { $project = $project.Substring($project.Length - 60) }
 if (-not $project) { $project = "project" }
-$markerDir = Join-Path ([System.IO.Path]::GetTempPath()) "appqe-session"
+$markerDir = Get-AppqeSessionDir $appqeRoot
 $marker = Join-Path $markerDir "stop-prompted-$project-$session"
 New-Item -ItemType Directory -Force -Path $markerDir | Out-Null
 # Markers are never read after their session ends, so sweep the stale ones rather
@@ -82,7 +89,7 @@ if ($mine.Count -gt 0) {
     [Console]::Error.WriteLine("appqe: this session still owns runs that never completed:")
     [Console]::Error.WriteLine(($mine -join "`n"))
     [Console]::Error.WriteLine("Settle each one before wrapping up: resume it (appqe resume <run_id> ...), or if it will not be finished, close it on the record with 'appqe abandon <run_id> --reason ""..."" ' - a reason that says what stopped the run, not why you are tidying it - and say what is therefore unverified. **A step you cannot get past is not a step to narrate around**: report it FAILED through appqe with the reason, so the run records what stopped it instead of ending with the step still open. Then ask a structured next-step question with concrete options, plus 'Done for now' and 'Something else'. (Prompt $tries of 3; after that this stops blocking and the runs stay open.) $othersNote")
-    exit 2
+    Exit-AppqeStop
   }
   [Console]::Error.WriteLine("appqe: [!!] ending with run(s) still incomplete after 3 prompts. They stay open, 'appqe list --incomplete' keeps reporting them, and whatever they generated is unverified. $othersNote")
   exit 0
@@ -92,7 +99,7 @@ if ($othersNote) {
   if (-not (Test-Path $othersMarker)) {
     New-Item -ItemType File -Force -Path $othersMarker | Out-Null
     [Console]::Error.WriteLine("appqe: $othersNote")
-    exit 2
+    Exit-AppqeStop
   }
 }
 
@@ -104,4 +111,4 @@ New-Item -ItemType File -Force -Path $marker | Out-Null
 # nothing was wrong. The trailing sentence was missing here entirely, so the two
 # twins gave different instructions on different platforms.
 [Console]::Error.WriteLine("appqe: one step left before this session ends - give the user their next steps. Recompute the progress line, then ask a structured next-step question: concrete options drawn from the current run state, plus 'Done for now' and 'Something else'. This runs once per session - the next stop ends normally.")
-exit 2
+Exit-AppqeStop

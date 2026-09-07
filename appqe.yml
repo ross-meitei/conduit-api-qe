@@ -22,7 +22,7 @@ profile: openapi_xunit         # API tests generated as .NET xUnit (C#)
 api_language: "C#"
 
 api:
-  openapi_path: specs/openapi.json
+  openapi_path: specs/openapi.yaml
   base_url: https://api.realworld.show/api   # public demo backend (non-prod)
   tests_dir: tests
   auth_scheme: "Token JWT (Authorization: Token <jwt>)"
@@ -74,7 +74,7 @@ data_sources: []
 # ── Toolchain ─────────────────────────────────────────────────────────
 package_manager: uv             # how the Python context helpers launch: uv|poetry|pip
 api_test_runner: dotnet test    # rendered as {{api_test_runner}}
-default_platform: copilot       # names the AGENT (copilot|claude|cursor|windsurf|kiro), not the editor
+default_platform: copilot
 
 # ── Guardrails ────────────────────────────────────────────────────────
 security:
@@ -90,6 +90,7 @@ security:
   # Extra executables beyond the built-in test-stack allowlist. appqe, dotnet, and
   # mkdir are already built in — only the project-specific tools need listing.
   allowed_commands:
+    - sleep       # lets the coordinator wait on a long-running phase
     - nswag       # regenerates the typed client from the spec
     - allure      # renders the test report
   redact_pii: true
@@ -98,7 +99,7 @@ security:
 quality:
   min_endpoint_coverage: 0.8    # fraction of API operations that need a test
   self_review_iterations: 2     # min self-review passes before "done"
-  flaky_reruns: 3               # re-runs used to classify a failure as flaky
+  flaky_reruns: 3                # re-runs used to classify a failure as flaky
   allow_quarantine: true        # may quarantine a diagnosed flaky test
 
 # ── Token economy (how tightly the agent budgets its own output) ──────

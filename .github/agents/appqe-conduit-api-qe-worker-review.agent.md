@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — independently reviews the generated tests against the spec (status codes, schema, auth) and fixes what is wrong, in multiple passes. Spawned by the appqe-agent coordinator as a subagent; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-review
+description: '[INTERNAL] appqe worker — independently reviews the generated tests against the spec (status codes, schema, auth) and fixes what is wrong, in multiple passes. Spawn this agent for those steps - it is the coordinator''s to dispatch. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-review
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -18,7 +18,7 @@ generator's framing — verify against the source, or the review is theatre.
 
 ## What you are given
 
-- `role` — `self_review`. `context.role_brief`, the spec (`specs/openapi.json`),
+- `role` — `self_review`. `context.role_brief`, the spec (`specs/openapi.yaml`),
   the approved plan, and the generated files under `tests`.
 - `constraints.min_iterations` — the minimum passes to make before you may stop.
 
@@ -80,7 +80,7 @@ when it should fail?* If no, drop it.
 
 ## What you return
 
-- **`worker`** — `appqe-worker-review`, verbatim. It is how the coordinator's result
+- **`worker`** — `appqe-conduit-api-qe-worker-review`, verbatim. It is how the coordinator's result
   says which worker answered; a delegated step whose result does not name its worker is
   rejected and sent back, because a step run somewhere else was run with other
   tools.
@@ -113,4 +113,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

@@ -2,6 +2,7 @@
 name: appqe-qe-core
 description: 'The QE principles behind appqe''s gates - risk-based testing, the test pyramid, what "covered" means, and why evidence beats assertion. Read it to ground a testing decision in the reasoning the workflow already encodes.'
 metadata: {version: 1.0.0, access: read-only}
+user-invocable: false
 ---
 # Skill: QE core principles
 
@@ -74,4 +75,4 @@ The gates are not ceremony; each one guards a specific way a QE run silently lie
      Anything between these markers is yours. -->
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

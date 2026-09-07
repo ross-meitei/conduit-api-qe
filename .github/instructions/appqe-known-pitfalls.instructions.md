@@ -6,7 +6,7 @@ applyTo: '**'
 # Known Pitfalls — Verify, Don't Assume
 
 > Each row is an assumption that produces a test which *passes without proving
-> anything*, or fails for the wrong reason. Check the spec (`specs/openapi.json`)
+> anything*, or fails for the wrong reason. Check the spec (`specs/openapi.yaml`)
 > and, where they disagree, the running API - never guess.
 
 ## API
@@ -37,7 +37,7 @@ applyTo: '**'
 ## When a schema/contract error surfaces mid-write — recover
 
 1. **Stop**; do not keep building on a wrong reference.
-2. Re-read the operation in `specs/openapi.json` (path, params, request/response
+2. Re-read the operation in `specs/openapi.yaml` (path, params, request/response
    schema, status codes, security) - or, for UI, re-check the selector.
 3. Fix every reference the mistake touched.
 4. Resume only once the references are confirmed.
@@ -50,4 +50,4 @@ prove a real run. The rest - asserting the documented status code, isolating sta
 sourcing values from the spec - is discipline no linter checks, which is exactly why
 it is catalogued here.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

@@ -4,6 +4,46 @@ $appqeRoot = Get-AppqeProjectRoot $PSScriptRoot
 $payload = $input | Out-String
 # Containment first - a foreign event is never blocked by OUR missing CLI.
 if (Test-AppqeEventIsForeign $payload $appqeRoot) { exit 0 }
+
+# --- delegation enforcement: mark this session as running a subagent ---------
+# PreToolUse carries no agent identifier, so the guard cannot tell a worker's own
+# run of a command from the coordinator's. SubagentStart/Stop do carry agent_id,
+# so the pair leaves a marker and the guard reads it. Without this the worker
+# would be refused the very command it was spawned to run.
+function Get-AppqeSubagentMarker([string]$p) {
+  $m = [regex]::Match($p, '"session_id"\s*:\s*"([^"]*)"')
+  if (-not $m.Success) { return $null }
+  $sid = ($m.Groups[1].Value -replace '[^A-Za-z0-9._-]', '')
+  if (-not $sid) { return $null }
+  $dir = Join-Path ([System.IO.Path]::GetTempPath()) 'appqe-session'
+  New-Item -ItemType Directory -Force -Path $dir -ErrorAction SilentlyContinue | Out-Null
+  Join-Path $dir "subagent-$sid"
+}
+
+# Record WHICH worker finished: agent_type is the subagent's name, written by the
+# host every time, so the engine reads it back instead of taking the model's word.
+$at = [regex]::Match($payload, '"agent_type"\s*:\s*"([^"]*)"')
+$sm = [regex]::Match($payload, '"session_id"\s*:\s*"([^"]*)"')
+if ($at.Success -and $sm.Success) {
+  $agentType = ($at.Groups[1].Value -replace '[^A-Za-z0-9._-]', '')
+  $sid = ($sm.Groups[1].Value -replace '[^A-Za-z0-9._-]', '')
+  if ($agentType -and $sid) {
+    $spawnDir = Join-Path ([System.IO.Path]::GetTempPath()) 'appqe-session'
+    New-Item -ItemType Directory -Force -Path $spawnDir -ErrorAction SilentlyContinue | Out-Null
+    $epoch = [int][double]::Parse((Get-Date -UFormat %s))
+    Add-Content -Path (Join-Path $spawnDir "spawned-$sid") -Value "$epoch $agentType" -ErrorAction SilentlyContinue
+  }
+}
+
+# One subagent finished: drop one mark. The file disappears when the last one
+# ends, which is when the coordinator is on its own again.
+$marker = Get-AppqeSubagentMarker $payload
+if ($marker -and (Test-Path $marker)) {
+  $lines = @(Get-Content $marker -ErrorAction SilentlyContinue)
+  if ($lines.Count -gt 1) { Set-Content -Path $marker -Value $lines[0..($lines.Count - 2)] -ErrorAction SilentlyContinue }
+  else { Remove-Item $marker -Force -ErrorAction SilentlyContinue }
+}
+
 $appqe = Resolve-Appqe
 if (-not $appqe) {
   # Same explanation and path forward the sh twin gives - Windows users get

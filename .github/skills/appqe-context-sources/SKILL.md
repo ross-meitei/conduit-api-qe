@@ -2,6 +2,7 @@
 name: appqe-context-sources
 description: 'Gather stories, acceptance criteria and decisions from the project''s requirement sources (any system wired in appqe.yml) and turn them into assertions - without inventing any.'
 metadata: {version: 1.0.0, access: research}
+user-invocable: false
 ---
 # Skill: Requirements context
 
@@ -172,4 +173,4 @@ Credentials come from the environment or the host's own auth - never from a
 config file, and never inline in a test. The discovery log is engagement-local:
 `appqe discovery export` redacts before anything travels.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

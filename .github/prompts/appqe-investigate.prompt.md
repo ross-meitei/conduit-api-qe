@@ -4,7 +4,7 @@ agent: appqe-conduit-api-qe
 ---
 Investigate the failing test for **conduit-api-qe**.
 
-Drive it through the orchestrator: `appqe start "investigate <paste the failure>"`,
+Drive it through the orchestrator: `appqe start --mode investigation "investigate <paste the failure>"`,
 then execute each phase and `appqe resume` with results.
 
 - Read the discovery log first - the failure may already be explained.
@@ -15,4 +15,4 @@ then execute each phase and `appqe resume` with results.
 - Verify the root cause with evidence; run a challenge step to disprove it.
 - Deliver a verdict + recommended fix; update the discovery log.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

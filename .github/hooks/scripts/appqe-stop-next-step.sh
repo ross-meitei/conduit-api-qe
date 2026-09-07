@@ -3,7 +3,15 @@
 #
 # Blocks once per session (exit 2 hands control back to the model), then allows
 # the session to end. The marker keeps this from becoming an inescapable loop.
+#
+# `--shape cursor`: Cursor's `stop` takes a `followup_message` on stdout and
+# lists exit 2 as "block the action" only for events that carry a permission -
+# which `stop` does not. So the nudge may simply have been discarded there.
+# Rather than leave that for a live smoke, this emits Cursor's documented shape
+# on exit 0 for that host, which is correct whichever way its exit codes behave.
 set -u
+SHAPE=""
+case "${1:-}" in --shape) SHAPE="${2:-}" ;; esac
 _HOOKDIR="$(dirname "$0")"
 . "$_HOOKDIR/appqe-resolve.sh"
 APPQE_ROOT="$(appqe_project_root "$_HOOKDIR")"
@@ -11,19 +19,25 @@ APPQE_ROOT="$(appqe_project_root "$_HOOKDIR")"
 if APPQE="$(appqe_resolve)"; then
   "$APPQE" --project-root "$APPQE_ROOT" dashboard >/dev/null 2>&1 || true
 fi
+
+# One exit path for the nudge, so a host's dialect is decided in one place.
+# Cursor reads `followup_message` on stdout; every other host reads stderr and
+# takes exit 2 as "hand control back to the model".
+_appqe_stop_exit() {
+  if [ "$SHAPE" = "cursor" ]; then
+    printf '{"followup_message":"appqe: one step left before this session ends - give the user their next steps, drawn from the current run state."}\n'
+    exit 0
+  fi
+  exit 2
+}
+
 payload="$(cat 2>/dev/null || true)"
 # Containment: a foreign session's stop is not this project's to prompt.
 appqe_event_is_foreign "$payload" "$APPQE_ROOT" && exit 0
-session="$(printf '%s' "$payload" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
-# Cursor names it conversation_id; without the fallback, ownership
-# stamping was silently dead there and every run read as another
-# session's (found by the cursor completeness sweep).
-[ -n "$session" ] || session="$(printf '%s' "$payload" | sed -n 's/.*"conversation_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
-# Never build a path out of unsanitised input. This value is read straight from
-# the hook payload, so a `../` in it would write the marker outside TMPDIR; keep
-# only characters a session id legitimately uses.
-session="$(printf '%s' "$session" | tr -cd 'A-Za-z0-9._-')"
-[ -n "$session" ] || session="default"
+# One derivation, shared with the progress-block hook - these two exchange
+# ownership stamps through this directory, so they cannot disagree about the key.
+# See appqe_session_id in appqe-resolve.sh for why the conversation wins (#138).
+session="$(appqe_session_id "$payload")"
 # Outside the repo: a once-per-session marker is not a project artifact, and
 # under .appqe/ it surfaced in the explorer and in git status.
 #
@@ -33,7 +47,7 @@ session="$(printf '%s' "$session" | tr -cd 'A-Za-z0-9._-')"
 # Keyed on the hook's OWN project, not the cwd: in a multi-root workspace $PWD is
 # whichever folder the editor handed the hook, so two projects could share a marker.
 project="$(printf '%s' "${APPQE_ROOT:-${CLAUDE_PROJECT_DIR:-${PWD}}}" | tr -cd 'A-Za-z0-9._-' | tail -c 60)"
-marker_dir="${TMPDIR:-/tmp}/appqe-session"
+marker_dir="$(appqe_session_dir "$APPQE_ROOT")"
 marker="$marker_dir/stop-prompted-${project:-project}-$session"
 mkdir -p "$marker_dir" 2>/dev/null || exit 0
 # Markers are never read after their session ends, so sweep the stale ones rather
@@ -111,6 +125,25 @@ someone else's live run destroys their work:$(printf '%s' "$others" | tr '\n' ' 
 Leave them: mention they exist, and let whoever drove them resume them. Only a \
 human decides 'appqe abandon' for a run this session did not drive."
 fi
+# Nothing of this session's left unsettled: the task is done, so release the
+# browser appqe's own binding started. A session left open is what blocks the
+# NEXT run - reported twice, the second time as "MCP browser binding
+# unavailable - locked by another Chrome session ... Requires the other session
+# to close before the browser can be used", which failed the survey outright.
+#
+# Only when the run is SETTLED, never mid-run, and only the MCP servers appqe
+# wires plus Playwright's own bundled browser; a browser on the user's profile
+# is never touched. `ui.release_browser_after_run: false` turns it off, which is
+# the right call when several sessions share one machine - the process scan is
+# machine-wide, so a settling session can close a server another is using.
+# `--auto` is what makes this the SETTING's decision rather than the hook's: it
+# no-ops unless `ui.release_browser_after_run` is on. The hook stays thin and the
+# policy lives in one place; a person running `explore --release --yes` by hand
+# is never gated by it.
+if [ -z "$mine" ] && [ -n "${APPQE:-}" ]; then
+  "$APPQE" --project-root "$APPQE_ROOT" explore --release --yes --auto \
+    >/dev/null 2>&1 || true
+fi
 if [ -n "$mine" ]; then
   tries_file="$marker_dir/stop-stalled-${project:-project}-$session"
   tries="$(cat "$tries_file" 2>/dev/null || echo 0)"
@@ -130,7 +163,7 @@ still open. Then ask a structured next-step question with concrete options, \
 plus 'Done for now' and 'Something else'. \
 (Prompt $tries of 3; after that this stops blocking and the runs stay open.) \
 $others_note" >&2
-    exit 2
+    _appqe_stop_exit
   fi
   echo "appqe: [!!] ending with run(s) still incomplete after 3 prompts. They \
 stay open, 'appqe list --incomplete' keeps reporting them, and whatever they \
@@ -140,7 +173,7 @@ fi
 if [ -n "$others_note" ] && [ ! -f "$marker_dir/stop-others-${project:-project}-$session" ]; then
   : > "$marker_dir/stop-others-${project:-project}-$session" 2>/dev/null || exit 0
   echo "appqe: $others_note" >&2
-  exit 2
+  _appqe_stop_exit
 fi
 
 if [ -f "$marker" ]; then
@@ -157,4 +190,4 @@ echo "appqe: one step left before this session ends - give the user their next \
 steps. Recompute the progress line, then ask a structured next-step question: \
 concrete options drawn from the current run state, plus 'Done for now' and \
 'Something else'. This runs once per session - the next stop ends normally." >&2
-exit 2
+_appqe_stop_exit

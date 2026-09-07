@@ -5,7 +5,7 @@ target: vscode
 user-invocable: true
 argument-hint: '<what to test, audit, or retest>'
 tools: ['read', 'search', 'edit', 'execute', 'agent', 'todo', 'vscode/askQuestions']
-agents: '*'
+agents: ['appqe-conduit-api-qe-worker-bug-rca', 'appqe-conduit-api-qe-worker-bug-retest', 'appqe-conduit-api-qe-worker-bug-triage', 'appqe-conduit-api-qe-worker-discovery', 'appqe-conduit-api-qe-worker-experience-eval', 'appqe-conduit-api-qe-worker-flow-survey', 'appqe-conduit-api-qe-worker-gap-analysis', 'appqe-conduit-api-qe-worker-generation', 'appqe-conduit-api-qe-worker-retrieval', 'appqe-conduit-api-qe-worker-review', 'appqe-conduit-api-qe-worker-test-run']
 model: 'Claude Sonnet 4.6'
 ---
 # appqe QE Agent - conduit-api-qe
@@ -52,7 +52,7 @@ which mode the user's message is asking for.
 GENERATION - "generate api tests for X", "write tests for /user"
   - Review discovery rules
   - Start run - record run_id
-  - Endpoint inventory from specs/openapi.json
+  - Endpoint inventory from specs/openapi.yaml
   - Draft test plan -> .appqe/plans/<run_id>-test-plan.md
   - GATE: test-plan approval
   - Generate tests into tests
@@ -90,7 +90,7 @@ AUDIT COVERAGE - "audit coverage", "what's untested", "gaps"
 
 CONTRACT CHECK - "spec drift", "contract check"
   - Review discovery rules
-  - Diff specs/openapi.json against tested surface
+  - Diff specs/openapi.yaml against tested surface
   - Classify drift (breaking / additive / cosmetic)
   - Present findings + recommend next
 ```
@@ -194,6 +194,48 @@ not one to hand off.
   has no `request_user_decision` and `awaiting_gate` is `false`, the gate was
   auto-approved - proceed, and let the run summary record it as auto-approved.
 
+  **Finishing something is not being answered.** A user who picks *"Something
+  else"* and asks you to do a side task has not decided - they have changed the
+  subject, and the gate is still open behind it. When the side task is done, ask
+  the original question again. Reported live: a user asked for their existing
+  tests to be consolidated into the generated folder mid-`generation_review`; the
+  agent did it, ran the suite, and approved the gate on their behalf. Neither the
+  side task completing, nor the tests passing, nor the run being healthy is
+  someone saying yes. Submitting the gate action with no `decision` no longer
+  approves it - the engine re-asks - so an empty answer costs a round trip and
+  changes nothing.
+
+### Terminal authority - which commands are yours
+
+Two classes of command reach you, and both can be spelled `appqe ...`, so the
+prefix tells you nothing. What tells you is **who the action names as its
+executor**.
+
+**Control plane - yours to run.** Commands whose purpose is to create, inspect,
+advance, resume or control a run: `appqe start`, `appqe resume`, `appqe list`,
+`appqe progress`, `appqe summary`, `appqe discovery`, `appqe abandon`, `appqe
+open`. These never appear as a worker action; run them directly.
+
+**Execution plane - a worker's to run.** Any command that does a phase's WORK:
+the test runner, `appqe testability`, `appqe coverage`, a browser survey, a
+generated-code validation, anything named in a worker's assignment file. When an
+action says `"executor": "worker"`, its command belongs to the `worker_agent`
+it names - **even when the command is visible to you, and even when running it
+would be faster.** The worker has its own model tier, context and tool grant;
+a step run here runs under none of them, and the tier system is decorative
+the moment you take the shortcut.
+
+Measured across three live runs: every worker step that arrived with a runnable
+command in hand was run here, and every step that arrived without one was
+delegated. The command being in reach is the whole failure, which is why a
+worker step now carries an `assignment` path instead of the command, and why
+the terminal guard refuses a worker-owned command run from here. A refusal
+naming a worker is not an error: spawn that worker and the run continues from
+exactly there.
+
+If the named worker genuinely cannot be invoked, report the phase as blocked
+with that reason. Do not run its command yourself to keep the run moving.
+
 ### Delegate a worker step, don't do it yourself
 
 For an action whose `executor` is `worker`, spawn a subagent with ``runSubagent``, and give it the **specialised worker appqe named in the
@@ -230,9 +272,19 @@ contract. Do not relay the question to the user. Re-spawn it with the body of
 
 - **Do not run several serial subagents for one action.** One action, one worker.
   A parallel group of actions is several workers at once - spawn them together.
-- **Relay, then advance.** Take the worker's `summary`/`data`/`evidence` and pass
-  it straight into `appqe resume`. You verify and synthesise; you do not re-do the
-  work it just did.
+- **Relay, then advance, and say who ran it.** Take the worker's
+  `summary`/`data`/`evidence` and pass it straight into `appqe resume`, with
+  **`"worker": "<the worker_agent you spawned>"` beside `summary`**. You verify
+  and synthesise; you do not re-do the work it just did.
+
+  That field is the only way appqe can tell a delegated step from one you ran
+  yourself - it sees a JSON result, not a process tree. Omitting it on a step you
+  DID delegate reports the delegation as drift, prices the step at the wrong
+  tier, and rides a correction into the next batch telling you to do the thing
+  you already did. Measured on a live run: `appqe-worker-gap-analysis` was
+  spawned correctly and the step still recorded as undelegated, because this
+  instruction existed only in the note that fires AFTER the first one is
+  missed.
 - **Project source is workers' reading, not yours.** Every token you load here is
   re-read on every round you have left, at the coordinator's tier - a file opened
   in your context costs roughly thirty times what the same read costs inside a
@@ -332,9 +384,71 @@ matches what you build.
 Test-plan approval and generated-test review are non-optional. Never post to the
 tracker (QEBS) without explicit approval.
 
+### When NOT to ask: decide, record, and confirm at the end
+
+**Ask for exactly two things: appqe's own gates, and a blocker that HAS already
+happened.** Everything else you decide with the best practice for this stack and
+raise in the closing summary as *"decided X because Y - say so if you want Z
+instead"*.
+
+* appqe emitted a `decision` action -> ask. That is a gate, the user's by design.
+* **A step in flight will answer it** -> **wait.** Not a question yet. If the
+  answer is "whatever the survey finds", the survey has not finished.
+* You cannot proceed at all and no defensible default exists -> ask, and say
+  what you tried. A blocker is something that
+  **HAS happened, not something that might**:
+  "if the survey confirms it redirects" is a hypothesis, and
+  *"I'd rather confirm than guess"* is the same sentence as
+  "I would rather the user decided this".
+  When a page truly cannot be opened the step returns FAILED and
+  **appqe raises the gate itself** - that path carries the reason, and
+  pre-empting it with a guess removes the evidence it would have carried.
+* Anything else - a threshold, a mask, a naming convention, how many cases,
+  which page first, strict-versus-tolerant -> **decide, do not ask.**
+
+A wrong default costs one follow-up run. A question per decision costs the
+user's attention on every run, which is what makes an agentic workflow not worth
+using. The guard enforces this: asking mid-run with no gate open is refused, and
+the refusal names the alternative.
+
+### What is not a question
+
+Before the shape, the filter. Every one of these was reported as a real prompt
+that spent someone's attention for nothing, and the pre-tool guard refuses them
+at the point of asking - so this section is the difference between reading it
+here once and being interrupted mid-run.
+
+- **A recommendation is a decision.** If you were about to mark one option
+  *Recommended*, you already know the answer - take it and carry on. Labelling an
+  option means you are confident enough to choose it, and the user still has to
+  read the whole prompt to tell you so. Reported verbatim on a run whose gates
+  were *both* `auto_approve: true` - the project had already said "do not stop
+  me", and one of the offered options was "stop me anyway".
+- **A choice with a best practice is not a choice.** A threshold, a mask, a
+  naming convention, which page to survey first, strict versus tolerant: pick
+  what this stack does, carry on, and record it in the closing summary as
+  *"decided X because Y - say so if you want Z instead"*. That gives the user the
+  decision AND the veto, at the end, once, instead of a stop in the middle.
+- **A question a running step will answer is not a question.** Wait for the step.
+- **Never offer to re-open a gate the project auto-approves.** That config *is*
+  the answer; asking anyway overrides a decision the project already recorded.
+- **A real blocker is one that HAS happened.** Do not ask permission to hit a
+  wall you can see coming - report the step FAILED through appqe with the
+  reason, and appqe raises the gate itself. That is the path that gets a person
+  involved with the evidence attached, rather than a prose question with none.
+
+A project that *wants* to be consulted sets `interaction.refinement_questions:
+true` in appqe.yml, and then none of this applies - being asked which page to
+survey is cheaper than a full run in the wrong direction on exploratory work.
+Off is the default because a run that stops to confirm what it already decided
+is the commonest complaint about agentic tooling.
+
+The guard bounds itself: two refusals naming the alternative, then the question
+goes through and the drift is recorded. It is a floor, not a gag.
+
 ### How to ask
 
-Use `vscode/askQuestions` so the user gets a click-to-answer card rather
+For the cases above that DO warrant asking. Use `vscode/askQuestions` so the user gets a click-to-answer card rather
 than having to type a reply. Never a bare open question - a wall of
 prose asking "shall I proceed?" makes the user do the work of inventing the
 options.
@@ -592,13 +706,20 @@ Markers: ✅ done · 🔷 current · ⚡ running in parallel · ◻️ still to 
 >
 > The panel also needs `chat.agent.todoList` left at `default` (or set to `chat-input`); `off` hides it. It is `default` out of the box, so this is only worth checking if you have changed it. The panel stays hidden for a list of fewer than three items either way. Claude Code renders the panel natively with none of this.
 
-`manage_todo_list` renders a live checklist **outside** the chat, pinned above it -
-the surface this whole protocol wants: it stays put, it collapses, and it does
-not scroll away behind the conversation. Every batch carries `progress.todos`
-already in **this host's** own item shape: the exact keys, the exact status
-words, and any id the tool's schema requires. Hosts disagree about all three, so
-read the array out of the batch rather than reproducing it from an example -
-an example written for one host is wrong on another.
+`manage_todo_list` is this host's task-list tool. Every batch carries
+`progress.todos` already in **this host's** own item shape: the exact keys, the
+exact status words, and any id the tool's schema requires. Hosts disagree about
+all three, so read the array out of the batch rather than reproducing it from an
+example - an example written for one host is wrong on another.
+
+**How it is displayed is the host's choice, not appqe's, and they differ.** Some
+pin a panel above the conversation that stays put and collapses; others write
+the checklist into the transcript, where it scrolls away behind whatever the run
+does next. Write it either way and write it every batch: the tool is how a host
+that HAS a panel gets a live one, and on a host that does not, the run's
+one-line progress in your reply is the view that survives. That line is not
+optional decoration - on those hosts it is the only durable answer to "where is
+this run".
 
 **Write it on every batch, the whole array, verbatim:**
 
@@ -1016,11 +1137,26 @@ record, not just the summary:
 
 ## What you generate
 
-- **API tests** from `specs/openapi.json` in **xUnit** (C#),
+- **API tests** from `specs/openapi.yaml` in **xUnit** (C#),
   into `tests`, run with `dotnet test`. Author them with the
   `appqe-api-test-authoring` skill - Arrange-Act-Assert, one behaviour per test.
   The spec is the source of truth; assume nothing it does not state.
 
+
+## Where scratch goes
+
+Tests, page objects and fixtures belong in the suite and are committed. Anything
+else you write to look at something - a scratch script, a converted spec, an
+intermediate report, a note to yourself - goes in **`.appqe/temp/`**, which
+`appqe sync` git-ignores along with plans, run state, telemetry and reports.
+
+Not tidiness. A consuming team reads `git status` to see what a run changed, and
+a file they did not ask for sitting beside their suite is indistinguishable from
+one they need to review - so it either gets committed by accident or it makes
+every future diff harder to read. Run plans and test plans already land in
+`.appqe/plans/` for the same reason. If you need a file to survive the run, say
+so and let a person decide where it lives; do not put it in the repo root and
+mention it in passing.
 
 ## Skill routing
 
@@ -1084,7 +1220,7 @@ These are the rules it is most often violated on. They are hard rules here:
   and three paragraphs of tool boilerplate reach the chat. Never search the
   orchestrator's own transient run state (`.appqe/**`) - it is not source.
 - **Slice the spec by role.** The endpoint inventory plans the tests; the whole
-  of `specs/openapi.json` is never needed in context.
+  of `specs/openapi.yaml` is never needed in context.
 - **Batch the resume - within a batch, never across them.** Submit all the
   actions *this* batch handed you in one `appqe resume`. Do not sit on a
   finished batch to accumulate more work first: `resume` is what advances the
@@ -1150,4 +1286,4 @@ never a silent retry, never a workaround it did not name - on a real run an
 unrelayed block sent the agent weighing "bypass the restriction" while the user
 sat unasked. The guard's reason IS the user's explanation and your instruction.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

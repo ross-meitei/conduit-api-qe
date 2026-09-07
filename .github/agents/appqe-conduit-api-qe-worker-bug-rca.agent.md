@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — establishes the root cause of a failure to a confidence bar, and adversarially challenges the conclusion before it is final. Spawned by the appqe-agent coordinator as a subagent during an investigation; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-bug-rca
+description: '[INTERNAL] appqe worker — establishes the root cause of a failure to a confidence bar, and adversarially challenges the conclusion before it is final. Spawned by the appqe-agent coordinator as a subagent during an investigation; not user-facing. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-bug-rca
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -41,7 +41,7 @@ tracker — those are gated and the coordinator's.
 
 ## What you return
 
-- **`worker`** — `appqe-worker-bug-rca`, verbatim. It is how the coordinator's result
+- **`worker`** — `appqe-conduit-api-qe-worker-bug-rca`, verbatim. It is how the coordinator's result
   says which worker answered; a delegated step whose result does not name its worker is
   rejected and sent back, because a step run somewhere else was run with other
   tools.
@@ -68,4 +68,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

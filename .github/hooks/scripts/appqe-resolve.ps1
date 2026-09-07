@@ -57,3 +57,29 @@ function Test-AppqeEventIsForeign {
   if ($cwdR.StartsWith($rootR) -or $rootR.StartsWith($cwdR)) { return $false }
   return $true
 }
+
+# Twins of appqe_session_id / appqe_session_dir in appqe-resolve.sh - see there
+# for the reasoning (#138: a once-per-session nudge firing after every response).
+function Get-AppqeSessionId {
+  param([string]$Payload)
+  # conversation_id FIRST: a host that also sends a per-REQUEST session_id
+  # re-keys the marker every turn when session_id wins.
+  $id = ""
+  if ($Payload -match '"conversation_id"\s*:\s*"([^"]*)"') { $id = $Matches[1] }
+  if (-not $id -and $Payload -match '"session_id"\s*:\s*"([^"]*)"') { $id = $Matches[1] }
+  # Never build a path out of unsanitised input.
+  $id = ($id -replace '[^A-Za-z0-9._-]', '')
+  if (-not $id) { $id = "default" }
+  return $id
+}
+
+function Get-AppqeSessionDir {
+  param([string]$ProjectRoot)
+  # .git/appqe when there is a repo: a marker has to survive between two turns of
+  # one session, and a per-invocation temp directory does not. Still outside the
+  # working tree, so it stays out of the explorer and out of `git status`.
+  if ($ProjectRoot -and (Test-Path (Join-Path $ProjectRoot ".git") -PathType Container)) {
+    return (Join-Path (Join-Path $ProjectRoot ".git") "appqe\session")
+  }
+  return (Join-Path ([System.IO.Path]::GetTempPath()) "appqe-session")
+}

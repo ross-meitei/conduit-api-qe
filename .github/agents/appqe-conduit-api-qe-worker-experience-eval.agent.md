@@ -1,6 +1,6 @@
 ---
-description: '[INTERNAL] appqe worker — evaluates the validator artifacts (test report, axe results, screenshots) against the requirements and produces evidence-rich findings. Spawned by the appqe-agent coordinator as a subagent; not user-facing. Do NOT select or invoke directly.'
-name: appqe-worker-experience-eval
+description: '[INTERNAL] appqe worker — evaluates the validator artifacts (test report, axe results, screenshots) against the requirements and produces evidence-rich findings. Spawn this agent for those steps - it is the coordinator''s to dispatch. Not a mode a person picks.'
+name: appqe-conduit-api-qe-worker-experience-eval
 target: vscode
 user-invocable: false
 tools: ['read', 'search', 'edit', 'execute']
@@ -45,7 +45,7 @@ act on without re-investigating.
 
 ## What you return
 
-- **`worker`** — `appqe-worker-experience-eval`, verbatim. It is how the coordinator's result
+- **`worker`** — `appqe-conduit-api-qe-worker-experience-eval`, verbatim. It is how the coordinator's result
   says which worker answered; a delegated step whose result does not name its worker is
   rejected and sent back, because a step run somewhere else was run with other
   tools.
@@ -77,4 +77,4 @@ severity conventions, its compliance requirements); whatever you put between
 these markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

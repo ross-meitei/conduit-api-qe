@@ -2,6 +2,7 @@
 name: appqe-contract-diff
 description: 'Find drift between the spec and the running API, and decide which side is wrong.'
 metadata: {version: 1.0.0, access: read-only}
+user-invocable: false
 ---
 # Skill: Contract drift
 
@@ -38,4 +39,4 @@ Do not silently update tests to match new behaviour - that erases the evidence
 that behaviour changed. Raise it, get a decision, then update, and record the
 decision and its date in the discovery log.
 
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->

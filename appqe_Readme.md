@@ -1,4 +1,4 @@
-<!-- appqe:managed v0.12.11 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
 # QE setup — conduit-api-qe
 
 How the agentic QE workflow in this repo is set up, how to use it, and what to
@@ -19,8 +19,8 @@ silently unguarded. Get set up:
 
 
 ```bash
-uv tool install "appqe @ git+https://github.com/Slalom/appqe.git"   # or pipx / pip install "appqe[openapi]"
-appqe --version                  # expect: 0.12.11
+uv tool install "appqe @ git+https://github.com/Slalom/appqe.git"   # or pipx / pip
+appqe --version                  # expect: 0.14.8
 appqe doctor                     # verifies wiring in this project
 ```
 
@@ -46,6 +46,19 @@ trip on:
 
 > This project is set up for **GitHub Copilot** (`default_platform: copilot` in `appqe.yml`). Driving it from a different agent means that agent's content was never deployed - `appqe doctor` says so, and `appqe sync --host <agent>` deploys it (real-time hooks on Copilot, Claude Code, Kiro and Cursor).
 
+**You do not have to say "appqe".** `appqe sync` deployed a routing instruction
+into the surface GitHub Copilot loads on every turn, so describing QE work in
+your own words — *"generate api tests for POST /articles"*, *"audit coverage"*,
+*"this test is flaky"* — is enough to start a run. You do not pick the workflow
+either: your words go to appqe verbatim and the intent router maps them. The
+agent also will not write test files directly, because a test that appears
+without a run carries no plan, no gate and no evidence.
+
+That is an instruction, not a lock. It makes the right path the obvious one; if
+this project needs a hard floor, gate it in CI (`appqe scaffold`). To switch the
+routing off, set `interaction.route_qe_intent: false` in `appqe.yml` — the next
+`appqe sync` removes the rule rather than just ceasing to refresh it.
+
 Select the **appqe-conduit-api-qe** agent, then describe the task (or fire a ready-made prompt).
 
 Whichever way it starts, the agent drives a phased run through the orchestrator
@@ -54,6 +67,13 @@ and stops at the approval gates for you.
 
 ```
 generate api tests for POST /articles          ← natural language, or a prompt:
+```
+
+A ready-made prompt takes the work as an argument, exactly as you would give it to
+a person - a ticket, a spec URL, an endpoint:
+
+```
+/appqe-generate-api-tests https://your-tracker/browse/QEBS-82
 ```
 
 Ready-made prompts - type `/` in chat to see them:
@@ -80,6 +100,8 @@ Ready-made prompts - type `/` in chat to see them:
 > ```
 >
 > The panel also needs `chat.agent.todoList` left at `default` (or set to `chat-input`); `off` hides it. It is `default` out of the box, so this is only worth checking if you have changed it. The panel stays hidden for a list of fewer than three items either way. Claude Code renders the panel natively with none of this.
+
+
 
 ### 2. In the terminal — you run setup and the read-only checks
 
@@ -110,11 +132,34 @@ says which commands the agent drives. There are more behind `appqe --help-all`
 for specific jobs (mapping journeys, wiring a requirement source, exporting a
 report); you do not need them for a normal run.
 
+## What you can ask appqe to do here
+
+Everything below is reachable by describing it — no command to remember. The
+sections that follow go deeper on the ones you will use most here.
+
+- **"generate api tests for POST /articles"** — a suite per endpoint: happy path,
+  the errors the spec documents, auth where the operation is secured.
+- **"audit coverage"** — measured against `specs/openapi.yaml`, gaps in risk order.
+- **"check contract drift"** — the running API probed against the spec, then the
+  suite diffed against both.
+- **"why is this test failing"** — reproduce, isolate, and a root-cause verdict
+  that a challenge step tried to disprove first.
+- **"retest BUG-123"** — the fix verified against the bug, with evidence, and a
+  comment posted back for your approval.
+- **"load test the checkout api, p95 < 500ms"** — k6 scripts run against your
+  targets, proven by the k6 summary. Needs `perf_profile` set in `appqe.yml`.
+- **"did the replatform keep the behaviour"** — a baseline run, a later candidate
+  run, and a journey-level comparison.
+
+**What it will not do:** decide your test strategy (it executes one, and the
+standards are skills you can override), review or refactor application code, or
+cut over a migration for you. Ask it about the app and it answers normally.
+
 ## How you use it, day to day
 
 ### API testing
 
-The unit is the **endpoint**. A run reads the spec (`specs/openapi.json`),
+The unit is the **endpoint**. A run reads the spec (`specs/openapi.yaml`),
 finds the requirements, plans cases per operation, generates them into
 `tests`, runs them, and measures coverage against the spec.
 
