@@ -28,7 +28,7 @@ applyTo: '**'
 | Criterion | Examples (API / UI) |
 |---|---|
 | **Functional error** | Asserts an **undocumented** status code; asserts the wrong schema field or type; passes on *any* 2xx instead of the documented code; wrong endpoint/method; a UI assertion racing the render; shared state between tests that should be independent |
-| **Contract / requirement violation** | An asserted value not traceable to the spec (`specs/openapi.yaml`) or a documented acceptance criterion - invented or assumed, not sourced |
+| **Contract / requirement violation** | An asserted value not traceable to the spec (`specs/openapi.json`) or a documented acceptance criterion - invented or assumed, not sourced |
 | **Missing coverage that matters** | A **secured** operation with no auth/negative-auth case; a **documented** error case with no test; a critical flow with only a happy path |
 | **Security** | A hardcoded secret, token, password, or **production** URL in test code or config; a sanctioned target other than `https://api.realworld.show/api` / the demo host |
 | **Runtime / blocking** | Won't compile or collect; raw HTTP where the project has a typed client/factory; a missing import or a fixture collision |
@@ -75,4 +75,4 @@ blocks a hardcoded secret or production URL, `appqe lint` flags weak assertions,
 noise-filtering and idempotency rules are guidance the `self_review` worker and the
 gate reviewer follow - nothing checks them for you.
 
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->

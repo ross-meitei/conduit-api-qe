@@ -18,7 +18,7 @@ generator's framing — verify against the source, or the review is theatre.
 
 ## What you are given
 
-- `role` — `self_review`. `context.role_brief`, the spec (`specs/openapi.yaml`),
+- `role` — `self_review`. `context.role_brief`, the spec (`specs/openapi.json`),
   the approved plan, and the generated files under `tests`.
 - `constraints.min_iterations` — the minimum passes to make before you may stop.
 
@@ -113,4 +113,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->

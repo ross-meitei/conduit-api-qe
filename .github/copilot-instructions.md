@@ -1,4 +1,4 @@
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
 # conduit-api-qe - QE standards
 
 Repo-wide standards for **conduit-api-qe**. These apply to every request in
@@ -6,7 +6,7 @@ this repository, whether or not the appqe agent is selected.
 
 ## The spec is the source of truth
 
-API behaviour is defined by `specs/openapi.yaml`. Assume nothing it does not
+API behaviour is defined by `specs/openapi.json`. Assume nothing it does not
 state. If the implementation disagrees with the spec, that is a finding to raise
 - not a detail to quietly encode into a test.
 

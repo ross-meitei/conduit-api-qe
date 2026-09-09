@@ -1,4 +1,4 @@
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
 # QE setup — conduit-api-qe
 
 How the agentic QE workflow in this repo is set up, how to use it, and what to
@@ -20,7 +20,7 @@ silently unguarded. Get set up:
 
 ```bash
 uv tool install "appqe @ git+https://github.com/Slalom/appqe.git"   # or pipx / pip
-appqe --version                  # expect: 0.14.8
+appqe --version                  # expect: 0.14.10
 appqe doctor                     # verifies wiring in this project
 ```
 
@@ -83,23 +83,15 @@ Ready-made prompts - type `/` in chat to see them:
 - `/appqe-generate-api-tests` - Generate API tests from the OpenAPI spec into the project's stack.
 - `/appqe-investigate` - Investigate a failing API or UI test and deliver a root-cause verdict.
 
-> **Copilot: put `#todo` in your message to get the live task-list panel.** On this build the panel only appears when *you* include `#todo` - a custom agent is not handed the tool otherwise, so without it you get the checklist as plain text. The slash command must come **first** (it is only recognised at the start of the input); `#todo` goes after it, on its own line:
+> **The task-list panel and appqe.** appqe drives the panel through the coordinator - the whole run, updated every batch. On this Copilot build one thing can take that over: an A/B experiment (`github.copilot.chat.agent.backgroundTodoAgent.enabled`) that turns the coordinator's todo tool off and lets a hidden background model write its own short list instead. That is the 2-3 vague rows some runs show part-way through - not appqe's steps, and never in sync with the run, because appqe is not the one writing them.
 >
-> ```
-> /appqe-generate-api-tests for /user endpoint
-> #todo
-> ```
+> `appqe sync` pins that experiment off in `.vscode/settings.json` (`github.copilot.chat.agent.backgroundTodoAgent.enabled: false`), which hands the tool back to the coordinator so appqe can fill all of the run's steps. `false` is the documented default, so this changes nothing for a session the experiment never selected. Delete the key if you would rather Copilot run its background todo agent.
 >
-> Re-include `#todo` on every gate reply - each message needs its own.
+> **If this project is one of several folders in a multi-root VS Code workspace**, that settings.json is FOLDER scope, and this setting is read without a folder resource - so the pin above has no effect there. Ask the user whether they opened a multi-root workspace; if so, ask them to open the Command Palette, run 'Preferences: Open Workspace Settings (JSON)', and add the same key to that file themselves - appqe cannot locate or edit a workspace file that may live outside this repository.
 >
-> **Bind it so you don't retype it.** Keybindings are user-scoped (a project cannot ship one), so add this once to your *user* `keybindings.json` (Cmd/Ctrl+K Cmd/Ctrl+S -> the `{}` icon) - it opens the run pre-filled in the format above:
+> If a run still shows a short, out-of-sync panel after that, the experiment is overriding the setting for your account - type `#todo` in that message (it forces the coordinator's tool on for the turn) and reload the window so the setting takes effect next run.
 >
-> ```jsonc
-> { "key": "cmd+alt+t", "command": "workbench.action.chat.open",
->   "args": { "query": "/appqe-generate-api-tests for /user endpoint\n#todo", "isPartialQuery": true } }
-> ```
->
-> The panel also needs `chat.agent.todoList` left at `default` (or set to `chat-input`); `off` hides it. It is `default` out of the box, so this is only worth checking if you have changed it. The panel stays hidden for a list of fewer than three items either way. Claude Code renders the panel natively with none of this.
+> Claude Code renders appqe's steps in its panel natively, none of this needed.
 
 
 
@@ -139,7 +131,7 @@ sections that follow go deeper on the ones you will use most here.
 
 - **"generate api tests for POST /articles"** — a suite per endpoint: happy path,
   the errors the spec documents, auth where the operation is secured.
-- **"audit coverage"** — measured against `specs/openapi.yaml`, gaps in risk order.
+- **"audit coverage"** — measured against `specs/openapi.json`, gaps in risk order.
 - **"check contract drift"** — the running API probed against the spec, then the
   suite diffed against both.
 - **"why is this test failing"** — reproduce, isolate, and a root-cause verdict
@@ -159,7 +151,7 @@ cut over a migration for you. Ask it about the app and it answers normally.
 
 ### API testing
 
-The unit is the **endpoint**. A run reads the spec (`specs/openapi.yaml`),
+The unit is the **endpoint**. A run reads the spec (`specs/openapi.json`),
 finds the requirements, plans cases per operation, generates them into
 `tests`, runs them, and measures coverage against the spec.
 

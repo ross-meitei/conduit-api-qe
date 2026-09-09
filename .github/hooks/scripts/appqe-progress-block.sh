@@ -152,11 +152,12 @@ case "$target" in
     # this closes: the payload was right and nobody could tell the panel was wrong.
     msg="$msg
 
-Then refresh the task-list panel from this batch's \`progress.todos\` - write the
-whole array, replacing the old list, so the widget matches the run and is not a
-phase behind. Do not narrate step numbers in your reply; the panel names them.
-**After writing it the panel must read exactly: $target.** Compare it; if it
-does not match, you did not write this batch's array - write it again now."
+Then refresh the task-list panel by running this batch's
+\`progress.todo_call\` - the complete call, whole run already written into it.
+Not \`actions\`: those are the steps to execute, and a panel built from them is
+one batch wide. Do not narrate step numbers in your reply; the panel names them.
+**After running it the panel must read exactly: $target.** Compare it; if it does
+not match, you built the items yourself - run \`progress.todo_call\` now."
     ;;
 esac
 emit "$msg"

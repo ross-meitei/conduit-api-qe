@@ -22,4 +22,4 @@ Then record what you confirmed so the next run skips this archaeology:
 --deep` for the worksheet you can answer from the code and submit with
 `appqe conventions accept`.
 
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->

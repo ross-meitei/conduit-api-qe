@@ -49,7 +49,9 @@ back so the coordinator can plan a test that is tailored, not just correct.
    Search by the feature terms; "no directly-linked story" is not "no context".
 3. **Quote, cite, digest.** Return acceptance criteria and rules *quoted* from the
    source with the issue key / page title, never paraphrased into an assertion.
-   Compress to what changes a test decision — never paste raw ticket dumps.
+   Compress to what changes a test decision — never paste raw ticket dumps *into
+   your result*. The raw response belongs in a file (see `queried` below); the
+   digest is what you return.
 4. Never invent a requirement. If nothing is found, say so plainly; the coordinator
    will build from the spec and mark the tests as such.
 
@@ -60,13 +62,51 @@ back so the coordinator can plan a test that is tailored, not just correct.
   rejected and sent back, because a step run somewhere else was run with other
   tools.
 - **`summary`** — one line: `QEBS-82 (Story): 23 ACs; QEBS-81 (Bug): dup-email 422`.
-- **`queried`** — every search you ran, verbatim, with its hit count:
-  `[{"source": "jira", "query": "text ~ 'user' AND type in (Story, Bug)", "hits": 2}]`.
+- **`queried`** — every search you ran, verbatim, with its hit count and, where it
+  found something, the file you saved the raw response to:
+  `[{"source": "jira", "query": "text ~ 'user' AND type in (Story, Bug)", "hits": 2,
+  "response": ".appqe/temp/<run_id>/user-jira.json"}]`.
   One entry per wired source; appqe rejects the result without them. "No results"
-  is a fine answer **with** the query that returned it. A usage error from a
-  client is NOT a result: a search that errored and a search that found nothing
-  must never be reported the same way — if the client cannot be run, return this
-  step FAILED with the command and its error.
+  is a fine answer **with** the query that returned it, and needs no response
+  file. A usage error from a client is NOT a result: a search that errored and a
+  search that found nothing must never be reported the same way — if the client
+  cannot be run, return this step FAILED with the command and its error.
+
+  **Pipe it through `tee`: read the response as you save it, one pass.**
+
+  ```bash
+  mkdir -p .appqe/temp/<run_id>
+  uv run python utils/jira_client.py QEBS-82 | tee .appqe/temp/<run_id>/QEBS-82.json
+  ```
+
+  Name that path here. It is git-ignored, and retention drops it with the run.
+
+  **Do not save it and then read the file back.** A REST payload is one long
+  line — a Jira issue's description is a single JSON string that can run to
+  thousands of characters — and a file reader truncates per line. Observed live:
+  a worker saved the response, tried to read it, reported that its file reader
+  *"seems to be truncating at 2000 characters per line ... this JSON file appears
+  to be minified onto one giant line"*, and spent four more commands on
+  `json.tool` and `grep` reaching content it had already had on stdout. `tee`
+  gives you both at once. If you need one field later, extract it with a command
+  rather than reading the whole file.
+
+  appqe then opens the file and checks it: that it parses, that the client's own
+  error field is not set, that no failing status is recorded, and that a ticket key
+  your query named is in what came back. This is not a second copy of your digest
+  and it does not compete with the compactness rule below — the file is on disk,
+  not in your result.
+
+  **It is not a gate.** Without it the step still passes, with the hits recorded
+  as taken on trust. So do not fail a fetch you completed because the redirect
+  did not work, and do not spend a second turn on the file: report what you
+  found. `| tee <file>` and `> <file>` are both allowed.
+
+  It is also what protects you. Without it your ACs are prose, the coordinator has
+  nothing it is allowed to trust, and it has to rate whether your answer *looks*
+  real. On a live run it read 23 accurate acceptance criteria, decided that much
+  detail "could be fabricated", and fetched the same ticket again. A file on disk
+  ends that argument before it starts.
 - **`data`** — the acceptance criteria and rules that bear on the tests, each with
   its source reference; any linked defects; anything the spec does not carry.
 - **Compact by construction** — your result is re-read by the coordinator's top-tier model on every remaining step, and the engine bounces a result over its size budget. Digest, never dump: shared structures once, exact names, no restated source text.
@@ -90,4 +130,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->

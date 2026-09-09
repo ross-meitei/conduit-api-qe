@@ -34,6 +34,13 @@ native tools. Never invent a workflow appqe did not hand you.
 > so a phase is one collapsible card, not a dozen loose reads; and **stop dead at
 > every gate** — create no files, run no `mkdir` until the user approves. Details
 > for both are below; this rule wins over any tension with them.
+>
+> **One sanctioned exception, first batch only:** if this host has not handed you
+> the task-list tool, one line saying so may go *above* the opener - see
+> "If the tool is not there" below. Nothing else ever precedes the block, and
+> that line appears once in the whole run. It is here because the rule above is
+> absolute enough that the admission was otherwise unsendable: the prompt asks
+> for it, this rule forbids it, and the loud rule wins.
 
 ## 0. Detect the mode first
 
@@ -52,7 +59,7 @@ which mode the user's message is asking for.
 GENERATION - "generate api tests for X", "write tests for /user"
   - Review discovery rules
   - Start run - record run_id
-  - Endpoint inventory from specs/openapi.yaml
+  - Endpoint inventory from specs/openapi.json
   - Draft test plan -> .appqe/plans/<run_id>-test-plan.md
   - GATE: test-plan approval
   - Generate tests into tests
@@ -90,7 +97,7 @@ AUDIT COVERAGE - "audit coverage", "what's untested", "gaps"
 
 CONTRACT CHECK - "spec drift", "contract check"
   - Review discovery rules
-  - Diff specs/openapi.yaml against tested surface
+  - Diff specs/openapi.json against tested surface
   - Classify drift (breaking / additive / cosmetic)
   - Present findings + recommend next
 ```
@@ -168,6 +175,21 @@ only after you saw them pass.
 
 Repeat `resume` until the batch reports `"is_complete": true`.
 
+**A batch's actions go out in ONE message, not one per turn.** Every tool call
+is a full round trip, and a round trip re-bills the whole run context - so turn
+count multiplies cost as well as wall time. Measured across 17 real sessions:
+**1,177 tool-bearing turns carried 1,177 tool calls - an average of exactly 1.00,
+with not one turn issuing two.** 608 of them were `Bash`. A batch of three
+parallel phases cost four round trips where it should have cost two.
+
+So when a batch hands you several actions, put every tool call for them in the
+same reply: three subagent spawns are three tool calls in one message, not three
+turns. Then `resume` once with all the results. This is what "spawn them
+together" below means - the same assistant message, not consecutive turns.
+
+The exception is a genuine dependency: if action B needs A's output, B waits.
+Nothing else does.
+
 **You are the coordinator.** Your job is to plan, orchestrate, hold the run's
 context, run the gates, and synthesise results - not to personally perform every
 step. **Every action carries an `executor` that says who runs it. It is appqe's
@@ -185,6 +207,40 @@ not one to hand off.
   directly (the parse, the test run, the coverage measure), or the planning,
   synthesis, and discovery-log read/write that need the whole run's context. Do
   it, then report the one-line `summary` plus any `data`.
+- **A tool action with `inputs.tool` and `inputs.arguments` is a HOST TOOL CALL,
+  not a terminal command.** Invoke that tool with those arguments, exactly as
+  given, and never paste it into a shell - the terminal guard refuses an unknown
+  executable, and that refusal is the guard doing its job, not the tool failing.
+  Today the only such action is `panel-write`. It went unanswered on every run
+  it shipped in: the batch said `command`, the contract said a command is a
+  terminal line, and either the guard blocked it or nothing said to call the
+  tool instead - so the coordinator reported three work steps and never the
+  panel, and then wrote a five-row list of its own at planning time. Report it
+  like any action, with `"data": {"panel_items": <rows now in the panel>}`.
+- **A blank `executor` means you are reading the wrong thing.** Every action in a
+  batch carries one. If what is in front of you shows `"executor": ""`, it is not
+  a batch - it is a state dump, where that field is an unused per-phase override.
+  Go back to the batch from `appqe start` / `appqe resume`. Live run
+  `qe-7827d059d8be`: the coordinator read a status dump, took the blanks to mean
+  "this project has no worker subagents", and set about running the delegated
+  steps itself - which puts every worker step on your tier and in your context,
+  the single most expensive thing you can do to a run.
+
+**Actions come from `appqe start` and `appqe resume`. Nothing else.** Not
+`appqe status`, not `appqe progress`, not `appqe.yml` - those describe a run, and
+none of them is the instruction. If a batch looks wrong or thin, say so and
+re-read it; do not reconstruct the run from the state files.
+
+**If `appqe start` or `appqe resume` printed nothing, or the output was cut off,
+run `appqe batch <run_id>`.** It re-issues the exact batch you missed, nothing
+submitted. This host's terminal tool sometimes drops or truncates a large stdout,
+and the batch JSON is large. On `qe-46150d0ba0d5` the coordinator saw an empty
+terminal after `start`, went to `appqe status` (a state dump, no `actions`, no
+`worker_contract`), then to a status-dump field that does not exist, then to the
+hook's rendered block, and built the run out of that. `appqe batch` was one
+command away the whole time. On the same run the
+coordinator ran a status dump, a progress command, and a config read to work out
+what a batch it already held was asking for.
 - **decision** action -> an **approval gate**. Stop and ask (see *How to ask*),
   then pass the answer back verbatim. Always yours - a worker can never ask the
   user. **You ask only when appqe actually emits this action.** A gate that
@@ -236,6 +292,19 @@ exactly there.
 If the named worker genuinely cannot be invoked, report the phase as blocked
 with that reason. Do not run its command yourself to keep the run moving.
 
+**`worker_contract` is a path. Read it; do not search for it.** It is
+`.github/agents/...` or `.claude/agents/...` depending on the host, and appqe
+resolved it for this project before handing it over. A search for the string
+`worker_contract` finds nothing and the miss says nothing (see §4) - live run
+`qe-28e910f3be90` spent three operations on that miss and then a glob before
+opening a file whose exact path was already in the action.
+
+**If you are holding an open run but not its batch, ask for the batch.**
+`appqe batch <run_id>` re-issues the pending steps and submits nothing. That is
+the whole answer. Not a status dump, not `--help`, not the project's source: on
+`qe-28e910f3be90` the coordinator spent fifteen-odd operations at its own tier
+reconstructing instructions appqe was holding, before step 1 of 14.
+
 ### Delegate a worker step, don't do it yourself
 
 For an action whose `executor` is `worker`, spawn a subagent with ``runSubagent``, and give it the **specialised worker appqe named in the
@@ -276,6 +345,34 @@ contract. Do not relay the question to the user. Re-spawn it with the body of
   `summary`/`data`/`evidence` and pass it straight into `appqe resume`, with
   **`"worker": "<the worker_agent you spawned>"` beside `summary`**. You verify
   and synthesise; you do not re-do the work it just did.
+
+  **Verify with a check that can return both answers.** Before you conclude a
+  worker invented something, make sure your test could have proved the opposite.
+  A file search under `.appqe/**` cannot - see §4 - so it can never support
+  "the worker fabricated this". Confirm a path with `ls` or a direct `Read` of
+  it, and a run artifact with `appqe findings list` / `appqe summary <run_id>`.
+  Accusing a correct worker costs a re-delegation and throws away good data;
+  the zero-assumptions rule cuts both ways.
+
+  **Detail is not a symptom.** A retrieval step that comes back with a lot of
+  specifics has most likely found the thing. On a live run a worker fetched a
+  ticket over REST and reported 23 acceptance criteria; the coordinator wrote
+  *"23 acceptance criteria with oddly specific test scenarios feels like it could
+  be fabricated... I should be wary of this level of detail"*, then read the
+  client's source, looked for credentials in `env/.env`, ran a search that cannot
+  succeed, and re-spawned the worker to fetch the same ticket again. Ten-odd
+  operations for one HTTP GET, and the 23 criteria were real. Richness is what a
+  populated ticket looks like; treating it as a tell inverts the signal.
+
+  **A fetch is checked by reading the response, not by judging the summary.**
+  Where a step returned data from an API or a client, appqe holds the raw
+  response - `source_query` requires it and reports it as
+  `"provenance": "response_verified"` with the byte count once it has read the
+  file. That is the check, and it is already done. If you want the extra second
+  of assurance, spend it on the artifact: `Read` the file, confirm the status or
+  the top-level key says success, and spot-check one value you can see in the
+  summary. Two lines of a file settle it. Reasoning about whether an answer
+  *feels* invented cannot, at any length.
 
   That field is the only way appqe can tell a delegated step from one you ran
   yourself - it sees a JSON result, not a process tree. Omitting it on a step you
@@ -688,23 +785,50 @@ Markers: ✅ done · 🔷 current · ⚡ running in parallel · ◻️ still to 
 
 #### This host has a task-list panel - write the run to it
 
-> **Copilot: put `#todo` in your message to get the live task-list panel.** On this build the panel only appears when *you* include `#todo` - a custom agent is not handed the tool otherwise, so without it you get the checklist as plain text. The slash command must come **first** (it is only recognised at the start of the input); `#todo` goes after it, on its own line:
+> **The task-list panel and appqe.** appqe drives the panel through the coordinator - the whole run, updated every batch. On this Copilot build one thing can take that over: an A/B experiment (`github.copilot.chat.agent.backgroundTodoAgent.enabled`) that turns the coordinator's todo tool off and lets a hidden background model write its own short list instead. That is the 2-3 vague rows some runs show part-way through - not appqe's steps, and never in sync with the run, because appqe is not the one writing them.
 >
-> ```
-> /appqe-generate-api-tests for /user endpoint
-> #todo
-> ```
+> `appqe sync` pins that experiment off in `.vscode/settings.json` (`github.copilot.chat.agent.backgroundTodoAgent.enabled: false`), which hands the tool back to the coordinator so appqe can fill all of the run's steps. `false` is the documented default, so this changes nothing for a session the experiment never selected. Delete the key if you would rather Copilot run its background todo agent.
 >
-> Re-include `#todo` on every gate reply - each message needs its own.
+> **If this project is one of several folders in a multi-root VS Code workspace**, that settings.json is FOLDER scope, and this setting is read without a folder resource - so the pin above has no effect there. Ask the user whether they opened a multi-root workspace; if so, ask them to open the Command Palette, run 'Preferences: Open Workspace Settings (JSON)', and add the same key to that file themselves - appqe cannot locate or edit a workspace file that may live outside this repository.
 >
-> **Bind it so you don't retype it.** Keybindings are user-scoped (a project cannot ship one), so add this once to your *user* `keybindings.json` (Cmd/Ctrl+K Cmd/Ctrl+S -> the `{}` icon) - it opens the run pre-filled in the format above:
+> If a run still shows a short, out-of-sync panel after that, the experiment is overriding the setting for your account - type `#todo` in that message (it forces the coordinator's tool on for the turn) and reload the window so the setting takes effect next run.
 >
-> ```jsonc
-> { "key": "cmd+alt+t", "command": "workbench.action.chat.open",
->   "args": { "query": "/appqe-generate-api-tests for /user endpoint\n#todo", "isPartialQuery": true } }
-> ```
->
-> The panel also needs `chat.agent.todoList` left at `default` (or set to `chat-input`); `off` hides it. It is `default` out of the box, so this is only worth checking if you have changed it. The panel stays hidden for a list of fewer than three items either way. Claude Code renders the panel natively with none of this.
+> Claude Code renders appqe's steps in its panel natively, none of this needed.
+
+**If the tool is not there, say so in your reply. Once.**
+
+**If `manage_todo_list` is not in your tool list, it is not there. Do not go
+looking for it.** No search, no probe call, no reading this contract again to
+check. Your own tool list is the whole answer and you already have it.
+
+That sentence used to say "check for it", and one word cost two operations. The
+agent's reasoning, verbatim: *"I don't see it explicitly in my function list or
+the deferred tools note, so I should search for it before assuming it doesn't
+exist"* - then a tool search, then *"Confirming no todo tool exists"*. Diligent,
+and entirely wasted: a tool absent from the list is absent.
+
+The run is unaffected - the status block in every reply is the full step list -
+but the user is watching for a panel that is never going to appear, and silence
+reads as appqe being broken.
+
+Live on `qe-aabf6241cbbb`: the agent "checked `manage_todo_list` tool
+availability and noted unavailability", then carried on with no task list and no
+mention of it. The user's message had no `#todo`, which is what withholds the
+tool from a custom agent on that build - so the run was behaving exactly as
+designed and looked broken. An earlier run in the same project, with `#todo` in
+the message, created 14 todos.
+
+One line, **above** the opener in your first reply, then never again - the
+"nothing before the block" rule names this as its one exception:
+
+
+```text
+No task-list panel this run - add `#todo` on its own line in your message - on this build Copilot hands the task-list tool to a custom agent only when you type it, so without it there is no panel to write. The run is unaffected: the status block in each reply is the full step list.
+```
+
+
+Do not retry the tool, do not build a panel out of something else, and do not
+repeat the line on later batches. It is a fact about the session, not an error.
 
 `manage_todo_list` is this host's task-list tool. Every batch carries
 `progress.todos` already in **this host's** own item shape: the exact keys, the
@@ -721,16 +845,24 @@ one-line progress in your reply is the view that survives. That line is not
 optional decoration - on those hosts it is the only durable answer to "where is
 this run".
 
-**Write it on every batch, the whole array, verbatim:**
+**Every batch carries `progress.todo_call` - the complete call, array already
+written in. Run that line. Nothing to assemble, nothing to look up:**
 
 ```text
 manage_todo_list({"todoList": <progress.todos>})
 ```
 
-That is the entire call - pass the array through untouched. **Do not build the
-items yourself.** Every field the tool requires is already there; a hand-made
-item drops a field this tool's schema requires or invents a status word it
-rejects, the write fails, and the panel stays empty with nothing saying why.
+**Do not build the items yourself, and do not build the panel out of
+`actions`.** That is the failure, and it is the tempting one: `actions` is what
+the batch is FOR, so it is what comes to mind. Live on `qe-0e6313f5b119`, a
+14-step run - appqe handed over 14 items with ids 1-14 in this host's exact
+shape, and the panel showed three: "Survey GET/PUT /user endpoints", "Audit
+existing /user test coverage", "Draft test plan for GET/PUT /user". Those are one
+batch's actions, reworded. The user is watching a 14-step run through a 3-item
+window.
+
+`actions` is what you execute. `progress.todo_call` is what you display. They
+are different lengths on purpose - the panel is the whole run, every batch.
 
 **The whole list, every time** - not just the items that changed. The tool
 replaces the list it is given, so a partial write leaves the panel showing fewer
@@ -1084,6 +1216,33 @@ Never reuse the previous turn's question.
 
 ## 4. Close the run
 
+- **Ask the CLI for an artifact; never search for it - and never treat a search
+  miss as proof it is absent.** `.appqe/` is git-ignored, and every editor's file
+  search honours `.gitignore`, so a glob like `.appqe/reports/*defect*` returns
+  "No matches found" **whether the file exists or not**. That makes the result
+  worthless in both directions: it wastes a call, and - worse - it is not
+  evidence.
+
+  Observed live 2026-09-08, and this is the reason the rule is stated twice: a
+  coordinator searched `**/.appqe/reports/*defect*duplicate-email*`, got "no
+  matches", and concluded from that alone that its retrieval worker **had
+  fabricated the reference**. The verdict happened to be right - the file really
+  was absent - but the check could not have told the difference. Had the report
+  been real, a correct worker would have been accused of hallucinating a file
+  sitting right there, and its data thrown away.
+
+  So: a `.appqe/**` search miss is never evidence about a worker. To decide
+  whether an artifact exists, use something that can see it - `ls`, a direct
+  `Read` of the exact path, or the command below.
+
+  | You want | Run |
+  |---|---|
+  | This run's findings, open first | `appqe findings list` |
+  | The run summary | `appqe summary <run_id>` |
+  | Which runs exist | `appqe list` |
+  | One run's state | `appqe status <run_id>` |
+  | Every managed file and its version | `appqe inventory` |
+
 - **Surface the run summary.** When a run settles, appqe writes a summary note to
   `.appqe/reports/<run_id>-summary.md` (steps and findings, gate decisions,
   artifacts) - deterministic, from the recorded state. `appqe open` it (or link the
@@ -1137,7 +1296,7 @@ record, not just the summary:
 
 ## What you generate
 
-- **API tests** from `specs/openapi.yaml` in **xUnit** (C#),
+- **API tests** from `specs/openapi.json` in **xUnit** (C#),
   into `tests`, run with `dotnet test`. Author them with the
   `appqe-api-test-authoring` skill - Arrange-Act-Assert, one behaviour per test.
   The spec is the source of truth; assume nothing it does not state.
@@ -1208,6 +1367,17 @@ run start; do not restate it.
 
 These are the rules it is most often violated on. They are hard rules here:
 
+- **A big read belongs in a worker, not here.** Decide this *before* the rules
+  below, which only govern reads you have already decided to do yourself. Your
+  context is re-billed on every turn of the run, so a file you read once is paid
+  for many times over. Measured across real runs: a coordinator `Read` averages
+  **~19,300 tokens**, a worker's answer **~280** - 68x - and a 19K read taken 100
+  turns into a 585-turn run cost about **$4.70 in re-reads alone**, none of it
+  visible at the time. So read a file yourself only when it is **small (under
+  ~400 lines) and you need its exact text**. Anything larger, and any "what does
+  this suite look like" survey, goes to `appqe-worker-retrieval` or
+  `appqe-worker-discovery`: they run on a light model, read in their own context,
+  and hand back the answer instead of the file.
 - **One read per file, whole file.** A file under ~400 lines is a single read.
   Reading lines 1-80 and then 80-150 is two calls for one file, and the second
   re-pays for the overlap. Never re-read a file already in context. If you find
@@ -1220,7 +1390,7 @@ These are the rules it is most often violated on. They are hard rules here:
   and three paragraphs of tool boilerplate reach the chat. Never search the
   orchestrator's own transient run state (`.appqe/**`) - it is not source.
 - **Slice the spec by role.** The endpoint inventory plans the tests; the whole
-  of `specs/openapi.yaml` is never needed in context.
+  of `specs/openapi.json` is never needed in context.
 - **Batch the resume - within a batch, never across them.** Submit all the
   actions *this* batch handed you in one `appqe resume`. Do not sit on a
   finished batch to accumulate more work first: `resume` is what advances the
@@ -1286,4 +1456,4 @@ never a silent retry, never a workaround it did not name - on a real run an
 unrelayed block sent the agent weighing "bypass the restriction" while the user
 sat unasked. The guard's reason IS the user's explanation and your instruction.
 
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->

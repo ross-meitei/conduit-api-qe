@@ -20,7 +20,7 @@ applyTo: '**'
 - [ ] Contains **no** hardcoded secret, token, password, or production URL. Only
       `https://api.realworld.show/api` / the demo host; creds from env or a factory.
 - [ ] (UI) Web-first waits, no hard-waits; selectors by `role and data-testid`.
-- [ ] Every asserted value traces to the spec (`specs/openapi.yaml`) or a
+- [ ] Every asserted value traces to the spec (`specs/openapi.json`) or a
       documented acceptance criterion - nothing invented.
 
 ## The run
@@ -49,4 +49,4 @@ and `appqe coverage --check-baseline` gates the threshold. The independence,
 error-case, and schema-assertion boxes are discipline - `appqe lint --strict` flags
 the weakest of them, the rest are yours to hold.
 
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->

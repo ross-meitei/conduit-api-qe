@@ -68,4 +68,4 @@ Unofficial, and not affiliated with or endorsed by ISO. The ISO 24495-1 text is 
 licensed document and is not reproduced. Every quantitative tripwire in the
 technique file is a working proxy, not a clause of the standard.
 
-<!-- appqe:managed v0.14.8 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
