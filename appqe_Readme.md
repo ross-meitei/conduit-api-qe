@@ -1,4 +1,4 @@
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->
 # QE setup — conduit-api-qe
 
 How the agentic QE workflow in this repo is set up, how to use it, and what to
@@ -20,7 +20,7 @@ silently unguarded. Get set up:
 
 ```bash
 uv tool install "appqe @ git+https://github.com/Slalom/appqe.git"   # or pipx / pip
-appqe --version                  # expect: 0.14.10
+appqe --version                  # expect: 0.14.11
 appqe doctor                     # verifies wiring in this project
 ```
 
@@ -131,7 +131,7 @@ sections that follow go deeper on the ones you will use most here.
 
 - **"generate api tests for POST /articles"** — a suite per endpoint: happy path,
   the errors the spec documents, auth where the operation is secured.
-- **"audit coverage"** — measured against `specs/openapi.json`, gaps in risk order.
+- **"audit coverage"** — measured against `specs/openapi.yaml`, gaps in risk order.
 - **"check contract drift"** — the running API probed against the spec, then the
   suite diffed against both.
 - **"why is this test failing"** — reproduce, isolate, and a root-cause verdict
@@ -151,7 +151,7 @@ cut over a migration for you. Ask it about the app and it answers normally.
 
 ### API testing
 
-The unit is the **endpoint**. A run reads the spec (`specs/openapi.json`),
+The unit is the **endpoint**. A run reads the spec (`specs/openapi.yaml`),
 finds the requirements, plans cases per operation, generates them into
 `tests`, runs them, and measures coverage against the spec.
 

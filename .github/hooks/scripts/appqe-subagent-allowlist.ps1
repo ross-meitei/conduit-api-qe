@@ -5,6 +5,13 @@ $payload = [Console]::In.ReadToEnd()
 # Containment: a foreign session's subagents follow their own project's rules.
 if (Test-AppqeEventIsForeign $payload $appqeRoot) { exit 0 }
 
+# Whose subagent is this? (#147) A project's own agents are not appqe's to
+# brief or to mark. A developer's my-repo-refactor-agent was told it "may
+# ONLY run" test runners, and this hook wrote the marker the PreToolUse
+# guard reads to identify a worker - so the briefing was ENFORCED too.
+# Before the marker, deliberately: writing it was the half with teeth.
+if (-not (Test-AppqeSessionEngaged $payload $appqeRoot)) { exit 0 }
+
 # --- delegation enforcement: mark this session as running a subagent ---------
 # PreToolUse carries no agent identifier, so the guard cannot tell a worker's own
 # run of a command from the coordinator's. SubagentStart/Stop do carry agent_id,

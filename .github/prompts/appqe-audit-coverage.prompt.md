@@ -8,7 +8,7 @@ Audit test coverage for **conduit-api-qe**.
 Drive it through the orchestrator: `appqe start --mode audit "audit coverage"`, then execute
 each phase and `appqe resume` with results.
 
-- Inventory endpoints from `specs/openapi.json` and the critical UI flows.
+- Inventory endpoints from `specs/openapi.yaml` and the critical UI flows.
 - Map existing tests to endpoints/flows.
 - Identify uncovered operations, missing negative/auth cases, and untested flows.
 - Deliver a prioritized coverage report (public + write endpoints and critical
@@ -39,4 +39,4 @@ each phase and `appqe resume` with results.
 > `#todo` in their own message**; nothing a project file can do grants
 > it, so naming that is the only useful thing you can say about it.
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

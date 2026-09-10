@@ -5,6 +5,11 @@ $payload = $input | Out-String
 # Containment first - a foreign event is never blocked by OUR missing CLI.
 if (Test-AppqeEventIsForeign $payload $appqeRoot) { exit 0 }
 
+# appqe's guardrail linter judges tests an appqe run generated. Running it
+# over whatever a project's own subagent left behind is appqe grading work
+# it did not commission, in a session that never asked (#147).
+if (-not (Test-AppqeSessionEngaged $payload $appqeRoot)) { exit 0 }
+
 # --- delegation enforcement: mark this session as running a subagent ---------
 # PreToolUse carries no agent identifier, so the guard cannot tell a worker's own
 # run of a command from the coordinator's. SubagentStart/Stop do carry agent_id,

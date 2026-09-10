@@ -10,6 +10,11 @@ payload="$(cat 2>/dev/null || true)"
 # is not this gate's to hold, whatever the state of this project's install.
 appqe_event_is_foreign "$payload" "$APPQE_ROOT" && exit 0
 
+# appqe's guardrail linter judges tests an appqe run generated. Running it over
+# whatever a project's own subagent happened to leave behind is appqe grading
+# work it did not commission, in a session that never asked (#147).
+appqe_session_engaged "$payload" "$APPQE_ROOT" || exit 0
+
 # --- delegation enforcement: mark this session as running a subagent ---------
 # `PreToolUse` carries no agent identifier, so the guard cannot tell a worker's
 # own run of a command from the coordinator's. SubagentStart/Stop DO carry

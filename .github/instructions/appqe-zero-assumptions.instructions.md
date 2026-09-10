@@ -8,7 +8,7 @@ applyTo: '**'
 > Applies to all API test generation and contract checks in **conduit-api-qe**.
 
 **Never assume an endpoint's shape from memory, a name, or a code comment.** The
-`specs/openapi.json` OpenAPI/Swagger spec is the single source of truth for:
+`specs/openapi.yaml` OpenAPI/Swagger spec is the single source of truth for:
 
 - Path, method, and operation id
 - Required vs optional parameters (path/query/header/body) and their types
@@ -28,4 +28,4 @@ drift), not something to paper over in the test.
 
 **Enforced by** `appqe lint --strict` (`undocumented-status-assertion`, `wrong-success-code` - the asserted code is compared against the spec's documented responses) and `appqe contract verify`, which settles whether the spec or the test is stale.
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

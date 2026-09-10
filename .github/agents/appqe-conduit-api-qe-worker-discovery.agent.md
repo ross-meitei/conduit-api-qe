@@ -29,7 +29,7 @@ status code, a schema field, or a selector you did not see.**
 
 ## How to work, by role
 
-- **endpoint_survey** — for each endpoint in scope, read `specs/openapi.json`
+- **endpoint_survey** — for each endpoint in scope, read `specs/openapi.yaml`
   and return: method + path, params (path/query/body, required vs optional),
   request/response schema field names and types, auth requirement, and every
   documented status code. Quote names exactly.
@@ -81,4 +81,4 @@ extend this with conventions specific to this worker; whatever you put between t
 markers survives every `appqe sync`.
 <!-- /appqe:custom -->
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

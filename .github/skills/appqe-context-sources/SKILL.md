@@ -173,4 +173,4 @@ Credentials come from the environment or the host's own auth - never from a
 config file, and never inline in a test. The discovery log is engagement-local:
 `appqe discovery export` redacts before anything travels.
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

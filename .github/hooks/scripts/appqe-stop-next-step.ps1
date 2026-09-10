@@ -23,6 +23,11 @@ if ($appqe) { & $appqe --project-root $appqeRoot dashboard *> $null }
 $payload = [Console]::In.ReadToEnd()
 # Containment: a foreign session's stop is not this project's to prompt.
 if (Test-AppqeEventIsForeign $payload $appqeRoot) { exit 0 }
+
+# A nudge needs a run to nudge about (#147). This asked a session that had
+# never issued an appqe command to give the user next steps "drawn from the
+# current run state" - there was no run.
+if (-not (Test-AppqeSessionEngaged $payload $appqeRoot)) { exit 0 }
 # One derivation, shared with the progress-block hook - see the .sh twin.
 $session = Get-AppqeSessionId $payload
 # Outside the repo: a once-per-session marker is not a project artifact.

@@ -20,6 +20,34 @@ $appqeRoot = Get-AppqeProjectRoot $PSScriptRoot
 $payload = [Console]::In.ReadToEnd()
 # Containment: a foreign session must not receive this project's QE briefing.
 if (Test-AppqeEventIsForeign $payload $appqeRoot) { exit 0 }
+
+# One emitter, three dialects. Duplicating the envelope is how a host ends up
+# handed the wrong shape and silently receives nothing at all.
+function Write-AppqeContext {
+  param([string]$Text)
+  switch ($Shape) {
+    'plain'  { $Text }
+    'cursor' { @{ additional_context = $Text } | ConvertTo-Json -Depth 5 }
+    default  { @{ hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalContext = $Text } } | ConvertTo-Json -Depth 5 }
+  }
+}
+
+# A session appqe is not driving gets ONE inert line, not the QE briefing
+# (#147). A developer opening a session to fix a bug was told where the API
+# tests live and instructed to record findings with `appqe discovery add` -
+# instructions for work they had not asked to do.
+#
+# SessionStart is the one event that cannot consult the latch and get a useful
+# answer: it fires before the session has done anything. That is why this is a
+# line rather than silence - discoverability is why the hook exists, and the
+# full briefing arrives with the run itself.
+if (-not (Test-AppqeSessionEngaged $payload $appqeRoot)) {
+  Write-AppqeContext ('appqe is available in this project. Ask for a QE workflow in your own words ' +
+    '(for example: generate api tests from the openapi spec) or run appqe --help. It stays out of ' +
+    'the way otherwise - appqe conventions and its command policy apply to appqe runs, not to this session.')
+  exit 0
+}
+
 $appqe = Resolve-Appqe
 if ($appqe) {
   # `--plain` rather than `--shape plain` - see the .sh twin: the resolved CLI
@@ -37,11 +65,6 @@ $fallback = 'appqe QE session. Source of truth for API tests is the OpenAPI spec
   'endpoints/schemas/status codes against it (zero assumptions). Generated tests must ' +
   'not hardcode secrets or production URLs, must assert status + schema, and UI tests ' +
   'must use web-first assertions with no hard waits. Stop at approval gates.'
-# The CLI could not run, so the fallback briefing is shaped here. Same three
-# dialects; a host that gets the wrong one is handed nothing.
-switch ($Shape) {
-  'plain'  { $fallback }
-  'cursor' { @{ additional_context = $fallback } | ConvertTo-Json -Depth 5 }
-  default  { @{ hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalContext = $fallback } } | ConvertTo-Json -Depth 5 }
-}
+# The CLI could not run, so the fallback briefing is shaped here.
+Write-AppqeContext $fallback
 exit 0

@@ -8,7 +8,7 @@ Check contract drift for **conduit-api-qe**.
 Drive it through the orchestrator: `appqe start --mode contract_check "check contract drift against the
 openapi"`, then execute each phase and `appqe resume` with results.
 
-- Load the current spec (`specs/openapi.json`) and index existing tests by
+- Load the current spec (`specs/openapi.yaml`) and index existing tests by
   operation + assertions (see the contract-diff skill).
 - Diff tests vs spec; classify each finding **breaking / additive / cosmetic**.
 - Deliver a drift report with the affected test files and recommended updates.
@@ -38,4 +38,4 @@ openapi"`, then execute each phase and `appqe resume` with results.
 > `#todo` in their own message**; nothing a project file can do grants
 > it, so naming that is the only useful thing you can say about it.
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

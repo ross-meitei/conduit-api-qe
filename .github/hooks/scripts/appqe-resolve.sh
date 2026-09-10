@@ -117,6 +117,38 @@ appqe_session_id() {
 # `git status`. `.git/` does neither, and run telemetry already lives there.
 # No repo (a scaffolded folder, a test fixture) falls back to $TMPDIR, so the
 # containment guarantees the traversal test pins are unchanged.
+# Is appqe DRIVING this session, or is it somebody else's? (#147)
+#
+# `appqe_event_is_foreign` asks which PROJECT an event belongs to and answers
+# it correctly. This asks which kind of WORK, which is a different question
+# and was never asked: a developer in this very repo, running their own
+# skills, got appqe's QE briefing, had their own subagent constrained by
+# appqe's worker allowlist, and had `rm -rf dist` and `git push` refused.
+#
+# The marker is written by the PreToolUse guard the first time a session runs
+# an appqe command or touches appqe-owned content, and it LATCHES - there is
+# no unmark, because a scope that could clear would drop a coordinator out of
+# it between two turns of one run. `adapters/session_scope.py` writes the same
+# path; the two must agree exactly or the shell half and the Python half scope
+# the same session differently.
+#
+# Usage:  appqe_session_engaged "$payload" "$APPQE_ROOT" || exit 0
+appqe_session_engaged() {
+  _sid="$(appqe_session_id "${1:-}")"
+  _dir="$(appqe_session_dir "${2:-}")"
+  [ -f "$_dir/engaged-$_sid" ] && return 0
+  # An OPEN RUN is engagement by itself, and the stronger evidence of the two.
+  # The `runs-<project>-<session>` stamp is written when a session opens or
+  # advances a run, so a session that owns one is unarguably driving appqe -
+  # marker or no marker. Without this clause a stop hook would decline to hold
+  # a session that has a half-finished run in it, which is the opposite of
+  # what this whole scope is protecting.
+  for _stamp in "$_dir"/runs-*-"$_sid"; do
+    [ -f "$_stamp" ] && return 0
+  done
+  return 1
+}
+
 appqe_session_dir() {
   if [ -d "${1:-}/.git" ]; then
     printf '%s' "${1}/.git/appqe/session"

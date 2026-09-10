@@ -1,11 +1,11 @@
 ---
 name: appqe-openapi-conventions
-description: 'Spec: `specs/openapi.json` (OpenAPI 3.x or Swagger 2.0)'
+description: 'Spec: `specs/openapi.yaml` (OpenAPI 3.x or Swagger 2.0)'
 applyTo: 'tests/**'
 ---
 # Working from an OpenAPI / Swagger spec
 
-> Spec: `specs/openapi.json` (OpenAPI 3.x or Swagger 2.0).
+> Spec: `specs/openapi.yaml` (OpenAPI 3.x or Swagger 2.0).
 
 **Load and validate first.** Parse the spec, confirm it is well-formed, and note
 the version, `servers`/`basePath`, and `securitySchemes`. If the spec is a URL,
@@ -32,4 +32,4 @@ schemas or status codes are breaking; new optional fields are additive.
 
 **Enforced by** `appqe openapi` (the spec must parse and produce an inventory) and `appqe contract verify` (drift against the running API).
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

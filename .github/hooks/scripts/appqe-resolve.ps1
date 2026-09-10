@@ -73,6 +73,36 @@ function Get-AppqeSessionId {
   return $id
 }
 
+function Test-AppqeSessionEngaged {
+  param([string]$Payload, [string]$ProjectRoot)
+  # Is appqe DRIVING this session, or is it somebody else's? (#147)
+  #
+  # Test-AppqeEventIsForeign asks which PROJECT an event belongs to. This asks
+  # which kind of WORK, which was never asked: a developer in this very repo,
+  # running their own skills, got appqe's QE briefing, had their own subagent
+  # constrained by appqe's worker allowlist, and had `rm -rf dist` and
+  # `git push` refused.
+  #
+  # The marker is written by the PreToolUse guard on the first appqe command,
+  # and it LATCHES - there is no unmark, because a scope that could clear
+  # would drop a coordinator out of it between two turns of one run. The twin
+  # is `appqe_session_engaged` in appqe-resolve.sh and
+  # `adapters/session_scope.py`; all three must agree on the path.
+  $sid = Get-AppqeSessionId -Payload $Payload
+  $dir = Get-AppqeSessionDir -ProjectRoot $ProjectRoot
+  if (Test-Path (Join-Path $dir "engaged-$sid") -PathType Leaf) { return $true }
+  # An OPEN RUN is engagement by itself, and the stronger evidence of the two:
+  # the runs-<project>-<session> stamp is written when a session opens or
+  # advances a run. Without this clause the stop hook would decline to hold a
+  # session with a half-finished run in it.
+  if (Test-Path $dir -PathType Container) {
+    if (Get-ChildItem -Path $dir -Filter "runs-*-$sid" -File -ErrorAction SilentlyContinue) {
+      return $true
+    }
+  }
+  return $false
+}
+
 function Get-AppqeSessionDir {
   param([string]$ProjectRoot)
   # .git/appqe when there is a repo: a marker has to survive between two turns of

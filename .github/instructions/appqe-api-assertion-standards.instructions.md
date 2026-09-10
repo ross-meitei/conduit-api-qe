@@ -35,4 +35,4 @@ diagnose a failure without re-running.
 
 **Enforced by** `appqe lint <test dirs> --strict` (missing/ambiguous/ranged status assertions, null-only assertions, absent schema validation) and `appqe coverage --kind api` (happy + error + auth per operation).
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

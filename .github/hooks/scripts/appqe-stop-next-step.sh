@@ -34,6 +34,12 @@ _appqe_stop_exit() {
 payload="$(cat 2>/dev/null || true)"
 # Containment: a foreign session's stop is not this project's to prompt.
 appqe_event_is_foreign "$payload" "$APPQE_ROOT" && exit 0
+
+# A nudge needs a run to nudge about (#147). This asked a session that had
+# never issued an appqe command to "give the user their next steps [...] drawn
+# from the current run state" - there was no run, and the developer's own
+# session was held open for one turn to say so.
+appqe_session_engaged "$payload" "$APPQE_ROOT" || exit 0
 # One derivation, shared with the progress-block hook - these two exchange
 # ownership stamps through this directory, so they cannot disagree about the key.
 # See appqe_session_id in appqe-resolve.sh for why the conversation wins (#138).

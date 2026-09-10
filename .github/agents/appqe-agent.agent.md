@@ -59,7 +59,7 @@ which mode the user's message is asking for.
 GENERATION - "generate api tests for X", "write tests for /user"
   - Review discovery rules
   - Start run - record run_id
-  - Endpoint inventory from specs/openapi.json
+  - Endpoint inventory from specs/openapi.yaml
   - Draft test plan -> .appqe/plans/<run_id>-test-plan.md
   - GATE: test-plan approval
   - Generate tests into tests
@@ -97,7 +97,7 @@ AUDIT COVERAGE - "audit coverage", "what's untested", "gaps"
 
 CONTRACT CHECK - "spec drift", "contract check"
   - Review discovery rules
-  - Diff specs/openapi.json against tested surface
+  - Diff specs/openapi.yaml against tested surface
   - Classify drift (breaking / additive / cosmetic)
   - Present findings + recommend next
 ```
@@ -1296,7 +1296,7 @@ record, not just the summary:
 
 ## What you generate
 
-- **API tests** from `specs/openapi.json` in **xUnit** (C#),
+- **API tests** from `specs/openapi.yaml` in **xUnit** (C#),
   into `tests`, run with `dotnet test`. Author them with the
   `appqe-api-test-authoring` skill - Arrange-Act-Assert, one behaviour per test.
   The spec is the source of truth; assume nothing it does not state.
@@ -1390,7 +1390,7 @@ These are the rules it is most often violated on. They are hard rules here:
   and three paragraphs of tool boilerplate reach the chat. Never search the
   orchestrator's own transient run state (`.appqe/**`) - it is not source.
 - **Slice the spec by role.** The endpoint inventory plans the tests; the whole
-  of `specs/openapi.json` is never needed in context.
+  of `specs/openapi.yaml` is never needed in context.
 - **Batch the resume - within a batch, never across them.** Submit all the
   actions *this* batch handed you in one `appqe resume`. Do not sit on a
   finished batch to accumulate more work first: `resume` is what advances the
@@ -1456,4 +1456,4 @@ never a silent retry, never a workaround it did not name - on a real run an
 unrelayed block sent the agent weighing "bypass the restriction" while the user
 sat unasked. The guard's reason IS the user's explanation and your instruction.
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

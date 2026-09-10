@@ -3,7 +3,7 @@ description: 'Generate API tests from the OpenAPI spec into the project''s stack
 agent: appqe-conduit-api-qe
 tools: ['read', 'search', 'edit', 'execute', 'agent', 'todo', 'vscode/askQuestions']
 ---
-Generate API tests for **conduit-api-qe** from `specs/openapi.json`.
+Generate API tests for **conduit-api-qe** from `specs/openapi.yaml`.
 
 Drive it through the orchestrator: `appqe start --mode api_generation "generate api tests from the
 openapi spec"`, then execute each phase and `appqe resume` with results.
@@ -44,4 +44,4 @@ openapi spec"`, then execute each phase and `appqe resume` with results.
 > `#todo` in their own message**; nothing a project file can do grants
 > it, so naming that is the only useful thing you can say about it.
 
-<!-- appqe:managed v0.14.10 | do-not-edit-manually | regenerate: appqe sync -->
+<!-- appqe:managed v0.14.11 | do-not-edit-manually | regenerate: appqe sync -->

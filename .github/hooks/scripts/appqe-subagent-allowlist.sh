@@ -7,6 +7,16 @@ payload="$(cat 2>/dev/null || true)"
 # Containment: a foreign session's subagents follow their own project's rules.
 appqe_event_is_foreign "$payload" "$APPQE_ROOT" && exit 0
 
+# Whose subagent is this? (#147) A project's own agents are not appqe's to
+# brief or to mark. Reported: a developer's `my-repo-refactor-agent` - a name
+# appqe has never heard of - was told it "may ONLY run" test runners and
+# linters, and this hook wrote the marker the PreToolUse guard reads to
+# identify a worker, so the briefing was ENFORCED as well as stated.
+#
+# Before the marker, deliberately. Writing it for a foreign subagent is the
+# half that had teeth.
+appqe_session_engaged "$payload" "$APPQE_ROOT" || exit 0
+
 # --- delegation enforcement: mark this session as running a subagent ---------
 # `PreToolUse` carries no agent identifier, so the guard cannot tell a worker's
 # own run of a command from the coordinator's. SubagentStart/Stop DO carry
