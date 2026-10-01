@@ -66,6 +66,19 @@ public static class ApiClientFactory
         return client;
     }
 
+    /// <summary>
+    /// A typed client authenticated as a specific user, not the shared session
+    /// token. Needed wherever a test's Act must be the generated client (per the
+    /// operation's own seam) but the caller has to be a throwaway user the test
+    /// just registered - e.g. a per-user feed - rather than whoever
+    /// <see cref="SessionToken"/> happens to be.
+    /// </summary>
+    public static ConduitApiClient CreateConduitApiClientForToken(string token)
+    {
+        var httpClient = CreateRawClientForToken(token);
+        return new ConduitApiClient(httpClient) { BaseUrl = ResolveBaseUrl() };
+    }
+
     public static string ResolveBaseUrl()
     {
         DotEnv.LoadForCurrentEnvironment();

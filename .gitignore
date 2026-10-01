@@ -16,17 +16,4 @@ allure-report/
 
 # Claude Code local settings + session logs
 .claude/
-
-# appqe transient run state (managed)
-.appqe/plans/
-.appqe/runs/
-.appqe/telemetry/
-.appqe/.session/
-.appqe/locks/
-.appqe/temp/
-.appqe/reports/
-env/.env
-a11y-results/
-**/okf/findings/index.md
-# /appqe
 temp/

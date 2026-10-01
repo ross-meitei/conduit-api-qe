@@ -150,11 +150,15 @@ public class ProfilesApiTests : IDisposable
             "Unauthenticated GET /profiles/{username} returns 401.");
     }
 
-    /// <summary>Register a throwaway user; returns its username and token.</summary>
-    private async Task<(string Username, string Token)> RegisterUserAsync()
+    /// <summary>
+    /// Register a throwaway user; returns its username and token. Internal
+    /// static (not private/instance) so other test classes in this assembly
+    /// can reuse this one copy rather than adding another.
+    /// </summary>
+    internal static async Task<(string Username, string Token)> RegisterUserAsync()
     {
         var (username, email, password) = TestDataFactory.NewUser();
-        var created = await _client.CreateUserAsync(new NewUserRequest
+        var created = await ApiClientFactory.CreateConduitApiClient().CreateUserAsync(new NewUserRequest
         {
             User = new NewUser { Username = username, Email = email, Password = password },
         });

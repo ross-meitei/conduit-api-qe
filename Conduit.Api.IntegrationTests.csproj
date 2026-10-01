@@ -10,13 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="specs\openapi.yaml" />
+    <None Remove="specs\openapi.json" />
   </ItemGroup>
 
   <!-- Typed client generated from the OpenAPI spec at build time (NSwag).
        Mirrors nswag.json; output is git-ignored and regenerated. -->
   <ItemGroup>
-    <OpenApiReference Include="specs/openapi.yaml" CodeGenerator="NSwagCSharp" ClassName="ConduitApiClient" Namespace="ConduitApiClientNamespace" OutputPath="generated-client/ConduitApiClient.cs">
+    <OpenApiReference Include="specs/openapi.json" CodeGenerator="NSwagCSharp" ClassName="ConduitApiClient" Namespace="ConduitApiClientNamespace" OutputPath="generated-client/ConduitApiClient.cs">
       <Options>/generateClientClasses:true /generateDtoTypes:true /injectHttpClient:true /operationGenerationMode:SingleClientFromOperationId</Options>
     </OpenApiReference>
   </ItemGroup>

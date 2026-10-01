@@ -22,7 +22,7 @@ profile: openapi_xunit         # API tests generated as .NET xUnit (C#)
 api_language: "C#"
 
 api:
-  openapi_path: specs/openapi.yaml
+  openapi_path: specs/openapi.json
   base_url: https://api.realworld.show/api   # public demo backend (non-prod)
   tests_dir: tests
   auth_scheme: "Token JWT (Authorization: Token <jwt>)"
@@ -74,7 +74,7 @@ data_sources: []
 # ── Toolchain ─────────────────────────────────────────────────────────
 package_manager: uv             # how the Python context helpers launch: uv|poetry|pip
 api_test_runner: dotnet test    # rendered as {{api_test_runner}}
-default_platform: copilot
+default_platform: claude
 
 # ── Guardrails ────────────────────────────────────────────────────────
 security:
