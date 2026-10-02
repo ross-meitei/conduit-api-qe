@@ -34,15 +34,18 @@ public class ProfilesApiTests : IDisposable
     [AllureDescription("Given an existing user, When GET /profiles/{username}, Then 200 + ProfileResponse.")]
     public async Task GetProfile_ExistingUser_Returns200AndProfileSchema()
     {
+        // Arrange - a registered user, fetching as the profile's own owner
         // Fetched as the profile's own owner. This backend serves a profile only
         // to its owner - any other caller, authenticated or not, gets 404 (see
         // the discovery log, Profiles / profiles are owner-only).
         var (username, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - fetch the user's profile
         var response = await asOwner.GetAsync($"profiles/{username}");
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 200, the documented schema, and the requested user's profile
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for a known profile"),
             "GET /profiles/{username} returns the documented 200.");
@@ -64,21 +67,18 @@ public class ProfilesApiTests : IDisposable
     [AllureDescription("Given another user, When followed then unfollowed, Then 'following' reflects it.")]
     public async Task FollowThenUnfollow_TogglesFollowing()
     {
-        // Register a second user to follow, so the test is self-contained.
-        var (username, _) = await RegisterUserAsync();
+        // Arrange - a second user, already followed by the caller
+        var (username, followed) = await ArrangeFollowedUserAsync();
 
-        ProfileResponse? followed = null;
-        await AllureApi.Step($"When following {username}", async () =>
-        {
-            followed = await _client.FollowUserByUsernameAsync(username);
-        });
-        AllureReportUtils.LogAndAssert(followed!.Profile.Following,
+        // Act - unfollow that user
+        var unfollowed = await _client.UnfollowUserByUsernameAsync(username);
+
+        // Assert - 'following' was true after the follow and is false after the unfollow
+        AllureReportUtils.LogAndAssert(followed.Profile.Following,
             f => f.Should().BeTrue("following a user must set 'following' to true"),
             "Profile.following is true after follow.");
         AllureReportUtils.LogAndAssert(followed.Profile.Username,
             u => u.Should().Be(username), "Followed profile is the requested user.");
-
-        var unfollowed = await _client.UnfollowUserByUsernameAsync(username);
         AllureReportUtils.LogAndAssert(unfollowed.Profile.Following,
             f => f.Should().BeFalse("unfollowing must set 'following' back to false"),
             "Profile.following is false after unfollow.");
@@ -94,8 +94,14 @@ public class ProfilesApiTests : IDisposable
         // The spec documents only 200 and 401 for this operation, so the code is
         // undocumented contract drift - raised as a finding, not absorbed into a
         // loose assertion. See the discovery log (Profiles / undocumented 404).
-        var act = async () => await _client.GetProfileByUsernameAsync($"nobody-{Guid.NewGuid():N}");
 
+        // Arrange - a username no one has registered
+        var unknownUsername = $"nobody-{Guid.NewGuid():N}";
+
+        // Act - fetch that profile (run inside the throw assertion below)
+        var act = async () => await _client.GetProfileByUsernameAsync(unknownUsername);
+
+        // Assert - the call throws, and the status is exactly 404
         var ex = await act.Should().ThrowAsync<ApiException>();
         AllureReportUtils.LogAndAssert(ex.Which.StatusCode,
             s => s.Should().Be(404, "an unknown profile must be a definite 404"),
@@ -108,10 +114,13 @@ public class ProfilesApiTests : IDisposable
     [AllureDescription("Given no token, When following a user, Then 401 Unauthorized is returned.")]
     public async Task FollowUser_NoAuth_Returns401()
     {
+        // Arrange - a client that sends no token
         using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
 
+        // Act - follow a user anonymously
         var response = await anon.PostAsync("profiles/someone/follow", content: null);
 
+        // Assert - the documented 401
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "the spec documents 401 for an unauthenticated follow"),
@@ -124,10 +133,13 @@ public class ProfilesApiTests : IDisposable
     [AllureDescription("Given no token, When unfollowing a user, Then 401 Unauthorized is returned.")]
     public async Task UnfollowUser_NoAuth_Returns401()
     {
+        // Arrange - a client that sends no token
         using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
 
+        // Act - unfollow a user anonymously
         var response = await anon.DeleteAsync("profiles/someone/follow");
 
+        // Assert - the documented 401
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "the spec documents 401 for an unauthenticated unfollow"),
@@ -140,14 +152,49 @@ public class ProfilesApiTests : IDisposable
     [AllureDescription("Given no token, When GET /profiles/{username}, Then 401 Unauthorized is returned.")]
     public async Task GetProfile_NoAuth_Returns401()
     {
+        // Arrange - a client that sends no token
         using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
 
+        // Act - fetch a profile anonymously
         var response = await anon.GetAsync("profiles/someone");
 
+        // Assert - the documented 401
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "the spec marks GET /profiles/{username} secured and documents 401 without a token"),
             "Unauthenticated GET /profiles/{username} returns 401.");
+    }
+
+    /// <summary>
+    /// Registers a second user and follows them as the caller, inside the
+    /// "When following" Allure step. Returns the username and the follow
+    /// response, so the test can assert what the follow set. Throws if the
+    /// follow is refused - the typed client raises ApiException on any
+    /// non-success status, rewrapped here so the failure says the scenario
+    /// never ran rather than reading as a failed expectation.
+    /// </summary>
+    private async Task<(string Username, ProfileResponse Followed)> ArrangeFollowedUserAsync()
+    {
+        // Register a second user to follow, so the test is self-contained.
+        var (username, _) = await RegisterUserAsync();
+
+        ProfileResponse? followed = null;
+        try
+        {
+            await AllureApi.Step($"When following {username}", async () =>
+            {
+                followed = await _client.FollowUserByUsernameAsync(username);
+            });
+        }
+        catch (ApiException ex)
+        {
+            throw new InvalidOperationException(
+                $"Following '{username}' failed with HTTP {ex.StatusCode} - " +
+                "this precondition did not happen, so the test that needed it never ran.",
+                ex);
+        }
+
+        return (username, followed!);
     }
 
     /// <summary>

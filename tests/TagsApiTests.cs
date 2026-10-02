@@ -31,9 +31,13 @@ public class TagsApiTests : IDisposable
     [AllureDescription("Given the site has tags, When GET /tags, Then 200 + TagsResponse.")]
     public async Task GetTags_Returns200AndTagsSchema()
     {
-        var response = await _raw.GetAsync("tags");
-        var body = await response.Content.ReadAsStringAsync();
+        // Arrange - the shared authenticated client; the site's existing tags are the data
 
+        // Act - list the tags
+        var response = await _raw.GetAsync("tags");
+
+        // Assert - 200, the documented schema, and no blank tag
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for GET /tags"),
             "GET /tags returns the documented 200.");
@@ -54,10 +58,13 @@ public class TagsApiTests : IDisposable
     [AllureDescription("Given no token, When GET /tags, Then the documented 200 status is returned.")]
     public async Task GetTags_NoAuth_Returns200()
     {
+        // Arrange - a client that sends no token
         using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
 
+        // Act - list the tags anonymously
         var response = await anon.GetAsync("tags");
 
+        // Assert - 200, because GET /tags is public
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK,
                 "GET /tags carries no security requirement in the spec"),

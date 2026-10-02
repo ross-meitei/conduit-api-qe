@@ -38,12 +38,15 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a registered user, When GET /user, Then 200 + UserResponse (QEBS-82 AC1, AC2).")]
     public async Task GetUser_Authenticated_Returns200AndUserSchema()
     {
+        // Arrange - a registered user and a client carrying their token
         var (username, email, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - fetch the current user
         var response = await asOwner.GetAsync("user");
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 200, the documented schema, and the caller's own username and email
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for GET /user (QEBS-82 AC1)"),
             "GET /user returns the documented 200.");
@@ -66,12 +69,15 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a registered user, When GET /user, Then the user object exposes only the documented keys (QEBS-82 AC4).")]
     public async Task GetUser_ResponseNeverLeaksSensitiveFields()
     {
+        // Arrange - a registered user and a client carrying their token
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - fetch the current user
         var response = await asOwner.GetAsync("user");
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 200, and the user object carries no credential or internal-id key
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for GET /user"),
             "GET /user returns the documented 200.");
@@ -91,15 +97,16 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a token from registration, When GET /user is called twice with it, Then both calls return 200 (QEBS-82 AC3).")]
     public async Task GetUser_TokenIsReusable_SecondCallSucceeds()
     {
+        // Arrange - a registered user whose token has already been used once, successfully
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
-
         var first = await asOwner.GetAsync("user");
+        await ThrowUnlessStatusAsync(first, HttpStatusCode.OK, "the first GET /user must succeed");
+
+        // Act - reuse the same token for a second call
         var second = await asOwner.GetAsync("user");
 
-        AllureReportUtils.LogAndAssert(first.StatusCode,
-            s => s.Should().Be(HttpStatusCode.OK, "the first GET /user must succeed"),
-            "First GET /user returns 200.");
+        // Assert - the second call also succeeds
         AllureReportUtils.LogAndAssert(second.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the same token must remain usable for a second call (QEBS-82 AC3)"),
             "Second GET /user with the same token returns 200.");
@@ -111,11 +118,15 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given two registered users, When A calls GET /user, Then A's own username is returned, never B's (QEBS-82 AC1).")]
     public async Task GetUser_ReturnsCallersOwnUser_NotAnotherUsers()
     {
+        // Arrange - two registered users, A and B, and a client carrying A's token
         var (usernameA, _, _, tokenA) = await RegisterUserAsync();
         var (usernameB, _, _, _) = await RegisterUserAsync();
         using var asA = ApiClientFactory.CreateRawClientForToken(tokenA);
 
+        // Act - fetch the current user as A
         var response = await asA.GetAsync("user");
+
+        // Assert - 200, and the account returned is A's, never B's
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for GET /user"),
             "GET /user returns the documented 200.");
@@ -136,10 +147,13 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given no token, When GET /user, Then 401 Unauthorized is returned.")]
     public async Task GetUser_NoAuth_Returns401()
     {
+        // Arrange - a client that sends no token
         using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
 
+        // Act - fetch the current user anonymously
         var response = await anon.GetAsync("user");
 
+        // Assert - the documented 401
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "the spec marks GET /user secured and documents 401 without a token"),
@@ -152,11 +166,14 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a valid token sent as 'Bearer' instead of this API's 'Token' scheme, When GET /user, Then 401 Unauthorized is returned (QEBS-82 AC20).")]
     public async Task GetUser_WrongAuthScheme_Returns401()
     {
+        // Arrange - a registered user's valid token, sent under the 'Bearer' scheme
         var (_, _, _, token) = await RegisterUserAsync();
         using var wrongScheme = CreateRawClientWithBearerToken(token);
 
+        // Act - fetch the current user with the wrong auth scheme
         var response = await wrongScheme.GetAsync("user");
 
+        // Assert - rejected with 401, the same as no token
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "this API's scheme is 'Token', not 'Bearer' - a wrong scheme must be rejected the same as no token (QEBS-82 AC20)"),
@@ -171,13 +188,16 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a registered user, When PUT /user changes only bio, Then 200 + UserResponse with bio updated and username/email unchanged (QEBS-82 AC5).")]
     public async Task UpdateUser_SingleField_UpdatesBioOthersUnchanged()
     {
+        // Arrange - a registered user and a new bio value
         var (username, email, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
         var newBio = $"bio-{Guid.NewGuid():N}";
 
+        // Act - update only the bio
         var response = await asOwner.PutAsJsonAsync("user", new { user = new { bio = newBio } });
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 200, the documented schema, bio updated, username and email unchanged
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the spec documents 200 for PUT /user (QEBS-82 AC5)"),
             "PUT /user returns the documented 200.");
@@ -203,17 +223,19 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a registered user, When PUT /user sends {\"user\":{}}, Then 200 and a follow-up GET /user shows every field unchanged (QEBS-82 AC17).")]
     public async Task UpdateUser_EmptyUserObject_LeavesFieldsUnchanged()
     {
+        // Arrange - a registered user and a client carrying their token
         var (username, email, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - send an update with an empty user object
         var response = await asOwner.PutAsJsonAsync("user", new { user = new { } });
 
+        // Assert - 200, and reading the record back shows username and email unchanged
+        var after = await asOwner.GetAsync("user");
+        var user = (await after.Content.ReadFromJsonAsync<UserResponse>())!.User;
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "an empty update object is a documented no-op, not an error (QEBS-82 AC17)"),
             "PUT /user with an empty user object returns 200.");
-
-        var after = await asOwner.GetAsync("user");
-        var user = (await after.Content.ReadFromJsonAsync<UserResponse>())!.User;
         AllureReportUtils.LogAndAssert(user.Username,
             u => u.Should().Be(username, "no field was in the update body, so username must be unchanged"),
             "username is unchanged after the empty update.");
@@ -228,12 +250,16 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a registered user with a non-empty bio, When PUT /user sends bio: \"\", Then the field is cleared, distinct from omitting it (QEBS-82 AC6).")]
     public async Task UpdateUser_ExplicitEmptyBio_ClearsField()
     {
+        // Arrange - a registered user whose bio has been set to a non-empty value
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
-        await asOwner.PutAsJsonAsync("user", new { user = new { bio = $"bio-{Guid.NewGuid():N}" } });
+        var seeded = await asOwner.PutAsJsonAsync("user", new { user = new { bio = $"bio-{Guid.NewGuid():N}" } });
+        await ThrowUnlessStatusAsync(seeded, HttpStatusCode.OK, "setting a non-empty bio to clear must succeed");
 
+        // Act - set bio explicitly to the empty string
         var response = await asOwner.PutAsJsonAsync("user", new { user = new { bio = "" } });
 
+        // Assert - 200, and bio is now empty
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "an explicit empty string is a valid value to set, not an error"),
             "PUT /user with bio: \"\" returns 200.");
@@ -250,13 +276,16 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given user A's email, When user B updates to it, Then the spec's documented 422 is expected. KNOWN DEFECT: the live API currently returns 200, allowing the duplicate (QEBS-82 AC7).")]
     public async Task UpdateUser_DuplicateEmail_Returns422_KnownDefect()
     {
+        // Arrange - two registered users, A and B, and a client carrying B's token
         var (_, emailA, _, _) = await RegisterUserAsync();
         var (_, _, _, tokenB) = await RegisterUserAsync();
         using var asB = ApiClientFactory.CreateRawClientForToken(tokenB);
 
+        // Act - B tries to take A's email
         var response = await asB.PutAsJsonAsync("user", new { user = new { email = emailA } });
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 422, GenericErrorModel, and the error names 'email'
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                 "QEBS-82 AC7 documents 422 for a duplicate email - KNOWN DEFECT: this API currently returns 200, allowing the duplicate"),
@@ -275,13 +304,16 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given user A's username, When user B updates to it in a different case, Then 422 + GenericErrorModel naming 'username' (QEBS-82 AC8).")]
     public async Task UpdateUser_DuplicateUsernameCaseInsensitive_Returns422()
     {
+        // Arrange - two registered users, A and B, and a client carrying B's token
         var (usernameA, _, _, _) = await RegisterUserAsync();
         var (_, _, _, tokenB) = await RegisterUserAsync();
         using var asB = ApiClientFactory.CreateRawClientForToken(tokenB);
 
+        // Act - B tries to take A's username in upper case
         var response = await asB.PutAsJsonAsync("user", new { user = new { username = usernameA.ToUpperInvariant() } });
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 422, GenericErrorModel, and the error names 'username'
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                 "a username already taken must be rejected, case-insensitively (QEBS-82 AC8)"),
@@ -300,12 +332,15 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a username that is too short and padded with whitespace, When PUT /user, Then 422 + GenericErrorModel (QEBS-82 AC9).")]
     public async Task UpdateUser_InvalidUsernameFormat_Returns422()
     {
+        // Arrange - a registered user and a client carrying their token
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - update to a whitespace-padded, single-character username
         var response = await asOwner.PutAsJsonAsync("user", new { user = new { username = "  a  " } });
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 422 and GenericErrorModel
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                 "a whitespace-padded, single-character username violates the documented username rules (QEBS-82 AC9)"),
@@ -321,12 +356,15 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given an email with no '@', When PUT /user, Then 422 + GenericErrorModel (QEBS-82 AC10).")]
     public async Task UpdateUser_MalformedEmail_Returns422()
     {
+        // Arrange - a registered user and a client carrying their token
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - update to an email with no '@'
         var response = await asOwner.PutAsJsonAsync("user", new { user = new { email = "not-an-email" } });
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 422 and GenericErrorModel
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                 "a malformed email must be rejected per the documented email format (QEBS-82 AC10)"),
@@ -342,12 +380,15 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a password under 8 characters, When PUT /user, Then 422 + GenericErrorModel is expected. If the API accepts it, that is an enforcement gap to report, not a reason to soften this assertion (QEBS-82 AC11).")]
     public async Task UpdateUser_WeakPassword_Returns422()
     {
+        // Arrange - a registered user and a client carrying their token
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - update to a 4-character password
         var response = await asOwner.PutAsJsonAsync("user", new { user = new { password = "weak" } });
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 422 and GenericErrorModel
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                 "a 4-character password fails the documented password policy - an accepted weak password is an enforcement gap (QEBS-82 AC11)"),
@@ -363,37 +404,31 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a password change, When the old token is reused or login is attempted with the old password, Then both fail; the new password logs in successfully (QEBS-82 AC12).")]
     public async Task UpdateUser_PasswordChange_InvalidatesOldToken()
     {
+        // Arrange - a registered user, their current token and password, and a new password
         var (_, email, oldPassword, oldToken) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(oldToken);
         var newPassword = $"Pw!{Guid.NewGuid():N}";
 
+        // Act - change the password
         var update = await asOwner.PutAsJsonAsync("user", new { user = new { password = newPassword } });
+
+        // Assert - 200; then the old token and old password fail, and the new password and its token work
+        var probe = await ProbeCredentialsAfterPasswordChangeAsync(asOwner, email, oldPassword, newPassword);
         AllureReportUtils.LogAndAssert(update.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the password change itself must succeed before the invalidation can be checked"),
             "PUT /user password change returns 200.");
-
-        var oldTokenAttempt = await asOwner.GetAsync("user");
-        AllureReportUtils.LogAndAssert(oldTokenAttempt.StatusCode,
+        AllureReportUtils.LogAndAssert(probe.OldTokenStatus,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "the pre-change token must stop working once the password changes (QEBS-82 AC12)"),
             "GET /user with the old token returns 401 after the password change.");
-
-        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
-        var oldLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email, password = oldPassword } });
-        AllureReportUtils.LogAndAssert(oldLogin.StatusCode,
+        AllureReportUtils.LogAndAssert(probe.OldLoginStatus,
             s => s.Should().BeOneOf(new[] { HttpStatusCode.Unauthorized, HttpStatusCode.UnprocessableEntity },
                 "the old password must no longer authenticate (QEBS-82 AC12)"),
             "Login with the old password fails.");
-
-        var newLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email, password = newPassword } });
-        AllureReportUtils.LogAndAssert(newLogin.StatusCode,
+        AllureReportUtils.LogAndAssert(probe.NewLoginStatus,
             s => s.Should().Be(HttpStatusCode.OK, "the new password must authenticate (QEBS-82 AC12)"),
             "Login with the new password returns 200.");
-
-        var newToken = (await newLogin.Content.ReadFromJsonAsync<UserResponse>())!.User.Token;
-        using var asNewToken = ApiClientFactory.CreateRawClientForToken(newToken);
-        var newTokenCheck = await asNewToken.GetAsync("user");
-        AllureReportUtils.LogAndAssert(newTokenCheck.StatusCode,
+        AllureReportUtils.LogAndAssert(probe.NewTokenStatus,
             s => s.Should().Be(HttpStatusCode.OK, "the token from the new login must work"),
             "GET /user with the freshly issued token returns 200.");
     }
@@ -404,29 +439,27 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given an email change, When the same token is reused, Then it still authorizes GET /user; login with the old email fails and the new email succeeds (QEBS-82 AC13).")]
     public async Task UpdateUser_EmailChange_KeepsOldTokenSessionAlive()
     {
+        // Arrange - a registered user, their token and password, and a new email
         var (_, oldEmail, password, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
         var newEmail = $"qa_{Guid.NewGuid():N}@conduit-qe.test";
 
+        // Act - change the email
         var update = await asOwner.PutAsJsonAsync("user", new { user = new { email = newEmail } });
+
+        // Assert - 200; then the same token still works, the old email fails to log in, and the new one succeeds
+        var probe = await ProbeCredentialsAfterEmailChangeAsync(asOwner, oldEmail, newEmail, password);
         AllureReportUtils.LogAndAssert(update.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the email change itself must succeed before the session check applies"),
             "PUT /user email change returns 200.");
-
-        var stillAlive = await asOwner.GetAsync("user");
-        AllureReportUtils.LogAndAssert(stillAlive.StatusCode,
+        AllureReportUtils.LogAndAssert(probe.SameTokenStatus,
             s => s.Should().Be(HttpStatusCode.OK, "changing email must not invalidate the existing token (QEBS-82 AC13)"),
             "GET /user with the same token still returns 200 after the email change.");
-
-        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
-        var oldEmailLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email = oldEmail, password } });
-        AllureReportUtils.LogAndAssert(oldEmailLogin.StatusCode,
+        AllureReportUtils.LogAndAssert(probe.OldEmailLoginStatus,
             s => s.Should().BeOneOf(new[] { HttpStatusCode.Unauthorized, HttpStatusCode.UnprocessableEntity },
                 "the old email must no longer authenticate once changed (QEBS-82 AC13)"),
             "Login with the old email fails.");
-
-        var newEmailLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email = newEmail, password } });
-        AllureReportUtils.LogAndAssert(newEmailLogin.StatusCode,
+        AllureReportUtils.LogAndAssert(probe.NewEmailLoginStatus,
             s => s.Should().Be(HttpStatusCode.OK, "the new email must authenticate (QEBS-82 AC13)"),
             "Login with the new email returns 200.");
     }
@@ -437,18 +470,20 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given an image value that is not an absolute http(s) URL, When PUT /user, Then 422 + GenericErrorModel for each malformed form (QEBS-82 AC14).")]
     public async Task UpdateUser_ImageNotAbsoluteUrl_Returns422()
     {
+        // Arrange - a registered user and four image values that are not absolute http(s) URLs
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
         string[] invalidImages = { "/relative/path.png", "javascript:alert(1)", "ftp://host/image.png", "not a url" };
 
-        foreach (var image in invalidImages)
-        {
-            await AllureApi.Step($"PUT /user with image '{image}'", async () =>
-            {
-                var response = await asOwner.PutAsJsonAsync("user", new { user = new { image } });
-                var body = await response.Content.ReadAsStringAsync();
+        // Act - send one update per invalid image, in order
+        var results = await PutEachImageAsync(asOwner, invalidImages);
 
-                AllureReportUtils.LogAndAssert(response.StatusCode,
+        // Assert - each one is 422 with a GenericErrorModel body
+        foreach (var (image, statusCode, body) in results)
+        {
+            AllureApi.Step($"PUT /user with image '{image}'", () =>
+            {
+                AllureReportUtils.LogAndAssert(statusCode,
                     s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                         $"'{image}' is not an absolute http(s) URL (QEBS-82 AC14)"),
                     $"image '{image}' returns 422.");
@@ -465,22 +500,21 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a bio of exactly 1024 characters, When PUT /user, Then it round-trips byte-for-byte; at 1025 characters, 422 (QEBS-82 AC15).")]
     public async Task UpdateUser_BioBoundary_1024RoundTrips_1025Rejected()
     {
+        // Arrange - a registered user whose bio is already set to exactly 1024 characters
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
         var bio1024 = new string('b', 1024);
         var bio1025 = new string('b', 1025);
+        var atLimitUser = await ArrangeBioAtLimitAsync(asOwner, bio1024);
 
-        var atLimit = await asOwner.PutAsJsonAsync("user", new { user = new { bio = bio1024 } });
-        AllureReportUtils.LogAndAssert(atLimit.StatusCode,
-            s => s.Should().Be(HttpStatusCode.OK, "1024 characters is the documented maximum and must be accepted (QEBS-82 AC15)"),
-            "bio at exactly 1024 chars returns 200.");
-        var atLimitUser = (await atLimit.Content.ReadFromJsonAsync<UserResponse>())!.User;
+        // Act - update the bio to 1025 characters, one past the limit
+        var overLimit = await asOwner.PutAsJsonAsync("user", new { user = new { bio = bio1025 } });
+
+        // Assert - the 1024-character bio round-tripped, and 1025 is rejected with 422 and GenericErrorModel
+        var overLimitBody = await overLimit.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(atLimitUser.Bio,
             b => b.Should().Be(bio1024, "the stored bio must round-trip byte-for-byte at the documented limit"),
             "bio round-trips at 1024 chars.");
-
-        var overLimit = await asOwner.PutAsJsonAsync("user", new { user = new { bio = bio1025 } });
-        var overLimitBody = await overLimit.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(overLimit.StatusCode,
             s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                 "1025 characters exceeds the documented bio limit (QEBS-82 AC15)"),
@@ -496,14 +530,17 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a body carrying token/id/role alongside a real field, When PUT /user, Then only the documented field is applied and the privileged ones are ignored (QEBS-82 AC16).")]
     public async Task UpdateUser_UnknownPrivilegedFields_Ignored()
     {
+        // Arrange - a registered user and a new bio value
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
         var newBio = $"bio-{Guid.NewGuid():N}";
 
+        // Act - update the bio with token, id and role smuggled into the same body
         var response = await asOwner.PutAsJsonAsync("user",
             new { user = new { bio = newBio, token = "hacked-token", id = 999, role = "admin" } });
-        var body = await response.Content.ReadAsStringAsync();
 
+        // Assert - 200, no id or role echoed back, bio applied, token not replaced
+        var body = await response.Content.ReadAsStringAsync();
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "unknown fields must not cause the update to fail"),
             "PUT /user with extra fields returns 200.");
@@ -530,23 +567,25 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given malformed JSON, and separately a body missing the 'user' wrapper, When PUT /user, Then 422 or 400 - never 500 (QEBS-82 AC18).")]
     public async Task UpdateUser_MalformedJsonOrMissingWrapper_NeverReturns500()
     {
+        // Arrange - a registered user and a client carrying their token
         var (_, _, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
-        await AllureApi.Step("PUT /user with malformed JSON", async () =>
+        // Act - send a malformed JSON body, then a body missing the 'user' wrapper
+        var (malformedJsonStatus, missingWrapperStatus) = await PutMalformedBodiesAsync(asOwner);
+
+        // Assert - each is rejected with 422 or 400, never 500
+        AllureApi.Step("PUT /user with malformed JSON", () =>
         {
-            using var malformed = new StringContent("{ this is not valid json", Encoding.UTF8, "application/json");
-            var response = await asOwner.PutAsync("user", malformed);
-            AllureReportUtils.LogAndAssert(response.StatusCode,
+            AllureReportUtils.LogAndAssert(malformedJsonStatus,
                 s => s.Should().BeOneOf(new[] { HttpStatusCode.UnprocessableEntity, HttpStatusCode.BadRequest },
                     "malformed JSON must be a client-error rejection, never a server crash (QEBS-82 AC18)"),
                 "Malformed JSON body returns 422 or 400, not 500.");
         });
 
-        await AllureApi.Step("PUT /user with the 'user' wrapper missing", async () =>
+        AllureApi.Step("PUT /user with the 'user' wrapper missing", () =>
         {
-            var response = await asOwner.PutAsJsonAsync("user", new { email = "no-wrapper@conduit-qe.test" });
-            AllureReportUtils.LogAndAssert(response.StatusCode,
+            AllureReportUtils.LogAndAssert(missingWrapperStatus,
                 s => s.Should().BeOneOf(new[] { HttpStatusCode.UnprocessableEntity, HttpStatusCode.BadRequest },
                     "a body missing the required 'user' wrapper must be rejected, never a server crash (QEBS-82 AC18)"),
                 "Body missing the 'user' wrapper returns 422 or 400, not 500.");
@@ -559,10 +598,13 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given no token, When PUT /user, Then 401 Unauthorized is returned.")]
     public async Task UpdateUser_NoAuth_Returns401()
     {
+        // Arrange - a client that sends no token
         using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
 
+        // Act - update the user anonymously
         var response = await anon.PutAsJsonAsync("user", new { user = new { bio = "anonymous edit" } });
 
+        // Assert - the documented 401
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "the spec marks PUT /user secured and documents 401 without a token"),
@@ -575,11 +617,14 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a valid token sent as 'Bearer' instead of this API's 'Token' scheme, When PUT /user, Then 401 Unauthorized is returned (QEBS-82 AC20).")]
     public async Task UpdateUser_WrongAuthScheme_Returns401()
     {
+        // Arrange - a registered user's valid token, sent under the 'Bearer' scheme
         var (_, _, _, token) = await RegisterUserAsync();
         using var wrongScheme = CreateRawClientWithBearerToken(token);
 
+        // Act - update the user with the wrong auth scheme
         var response = await wrongScheme.PutAsJsonAsync("user", new { user = new { bio = "wrong scheme edit" } });
 
+        // Assert - rejected with 401, the same as no token
         AllureReportUtils.LogAndAssert(response.StatusCode,
             s => s.Should().Be(HttpStatusCode.Unauthorized,
                 "this API's scheme is 'Token', not 'Bearer' - a wrong scheme must be rejected the same as no token (QEBS-82 AC20)"),
@@ -592,16 +637,19 @@ public class UserApiTests : IDisposable
     [AllureDescription("Given a PUT /user that is rejected with 422, When GET /user follows, Then every field is exactly as it was before the rejected attempt - no partial write (QEBS-82 AC22).")]
     public async Task UpdateUser_RejectedUpdateLeavesRecordUnchanged()
     {
+        // Arrange - a registered user and a client carrying their token
         var (username, email, _, token) = await RegisterUserAsync();
         using var asOwner = ApiClientFactory.CreateRawClientForToken(token);
 
+        // Act - send an update that must be rejected (malformed email)
         var rejected = await asOwner.PutAsJsonAsync("user", new { user = new { email = "not-an-email" } });
+
+        // Assert - 422; then reading the record back shows username and email exactly as before
+        var after = await asOwner.GetAsync("user");
         AllureReportUtils.LogAndAssert(rejected.StatusCode,
             s => s.Should().Be(HttpStatusCode.UnprocessableEntity,
                 "the malformed email must be rejected before the unchanged-record check applies"),
             "The malformed-email update returns 422.");
-
-        var after = await asOwner.GetAsync("user");
         AllureReportUtils.LogAndAssert(after.StatusCode,
             s => s.Should().Be(HttpStatusCode.OK, "the follow-up GET must succeed to prove the record's state"),
             "Follow-up GET /user returns 200.");
@@ -613,6 +661,116 @@ public class UserApiTests : IDisposable
         AllureReportUtils.LogAndAssert(user.Email,
             e => e.Should().Be(email, "a rejected update must leave every field unchanged (QEBS-82 AC22)"),
             "email is unchanged after the rejected update.");
+    }
+
+    /// <summary>
+    /// Sets the bio to exactly the 1024-character limit and returns the stored
+    /// user. Throws unless the update is accepted with 200 - without it, the
+    /// boundary case has no accepted side to compare the rejection against.
+    /// </summary>
+    private static async Task<User> ArrangeBioAtLimitAsync(HttpClient asOwner, string bio1024)
+    {
+        var atLimit = await asOwner.PutAsJsonAsync("user", new { user = new { bio = bio1024 } });
+        await ThrowUnlessStatusAsync(atLimit, HttpStatusCode.OK,
+            "1024 characters is the documented maximum and must be accepted (QEBS-82 AC15)");
+        return (await atLimit.Content.ReadFromJsonAsync<UserResponse>())!.User;
+    }
+
+    /// <summary>
+    /// After a password change: retries the old token, logs in with the old and
+    /// new passwords, and calls GET /user with the freshly issued token. Returns
+    /// each status for the test to assert. NewTokenStatus is null when the new
+    /// login returned no token, so that failure surfaces as an assertion rather
+    /// than a null reference.
+    /// </summary>
+    private static async Task<(HttpStatusCode OldTokenStatus, HttpStatusCode OldLoginStatus, HttpStatusCode NewLoginStatus, HttpStatusCode? NewTokenStatus)>
+        ProbeCredentialsAfterPasswordChangeAsync(HttpClient asOwner, string email, string oldPassword, string newPassword)
+    {
+        var oldTokenAttempt = await asOwner.GetAsync("user");
+
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+        var oldLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email, password = oldPassword } });
+        var newLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email, password = newPassword } });
+
+        HttpStatusCode? newTokenStatus = null;
+        var newToken = newLogin.IsSuccessStatusCode
+            ? (await newLogin.Content.ReadFromJsonAsync<UserResponse>())?.User?.Token
+            : null;
+        if (!string.IsNullOrEmpty(newToken))
+        {
+            using var asNewToken = ApiClientFactory.CreateRawClientForToken(newToken);
+            var newTokenCheck = await asNewToken.GetAsync("user");
+            newTokenStatus = newTokenCheck.StatusCode;
+        }
+
+        return (oldTokenAttempt.StatusCode, oldLogin.StatusCode, newLogin.StatusCode, newTokenStatus);
+    }
+
+    /// <summary>
+    /// After an email change: retries the same token, then logs in with the old
+    /// and new emails. Returns each status for the test to assert.
+    /// </summary>
+    private static async Task<(HttpStatusCode SameTokenStatus, HttpStatusCode OldEmailLoginStatus, HttpStatusCode NewEmailLoginStatus)>
+        ProbeCredentialsAfterEmailChangeAsync(HttpClient asOwner, string oldEmail, string newEmail, string password)
+    {
+        var stillAlive = await asOwner.GetAsync("user");
+
+        using var anon = ApiClientFactory.CreateRawClient(authenticated: false);
+        var oldEmailLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email = oldEmail, password } });
+        var newEmailLogin = await anon.PostAsJsonAsync("users/login", new { user = new { email = newEmail, password } });
+
+        return (stillAlive.StatusCode, oldEmailLogin.StatusCode, newEmailLogin.StatusCode);
+    }
+
+    /// <summary>
+    /// Sends one PUT /user per image value, in order, and returns each status
+    /// and body. The test asserts them afterwards, one Allure step per image.
+    /// </summary>
+    private static async Task<IReadOnlyList<(string Image, HttpStatusCode StatusCode, string Body)>> PutEachImageAsync(
+        HttpClient asOwner, IEnumerable<string> images)
+    {
+        var results = new List<(string Image, HttpStatusCode StatusCode, string Body)>();
+        foreach (var image in images)
+        {
+            var response = await asOwner.PutAsJsonAsync("user", new { user = new { image } });
+            var body = await response.Content.ReadAsStringAsync();
+            results.Add((image, response.StatusCode, body));
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Sends a malformed JSON body, then a body missing the 'user' wrapper, and
+    /// returns both statuses for the test to assert.
+    /// </summary>
+    private static async Task<(HttpStatusCode MalformedJsonStatus, HttpStatusCode MissingWrapperStatus)> PutMalformedBodiesAsync(
+        HttpClient asOwner)
+    {
+        using var malformed = new StringContent("{ this is not valid json", Encoding.UTF8, "application/json");
+        var malformedResponse = await asOwner.PutAsync("user", malformed);
+        var missingWrapperResponse = await asOwner.PutAsJsonAsync("user", new { email = "no-wrapper@conduit-qe.test" });
+        return (malformedResponse.StatusCode, missingWrapperResponse.StatusCode);
+    }
+
+    /// <summary>
+    /// Throws unless a setup request returned <paramref name="expected"/>. A setup
+    /// step that did not happen is a test that never ran, not a failed
+    /// expectation, so it throws instead of asserting. Internal (not private) so
+    /// other test classes in this assembly can reuse this one copy.
+    /// </summary>
+    internal static async Task ThrowUnlessStatusAsync(HttpResponseMessage response, HttpStatusCode expected, string precondition)
+    {
+        if (response.StatusCode == expected)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new InvalidOperationException(
+            $"{precondition}, but {response.RequestMessage?.Method} {response.RequestMessage?.RequestUri} returned " +
+            $"{(int)response.StatusCode} {response.StatusCode}: {body} - " +
+            "this precondition did not happen, so the test that needed it never ran.");
     }
 
     /// <summary>Register a throwaway user; returns its username, email, password and token.</summary>
