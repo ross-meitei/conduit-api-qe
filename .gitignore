@@ -15,3 +15,6 @@ allure-report/
 !.env.example
 
 temp/
+
+# OS
+.DS_Store
