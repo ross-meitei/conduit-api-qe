@@ -1,0 +1,293 @@
+# appqe.yml - application QE configuration. Every setting has a sensible default;
+# override only what applies. See the README "Configuration" section.
+# appqe:seeded - written from detection by `appqe init`. Confirm it with /appqe-onboard in your coding agent (or `appqe onboard`). [h:83cb5f787087]
+
+project_name: conduit-api-qe
+# How this project's agent appears in the editor's agent picker. Blank derives
+# it from project_name (my-app-qe -> appqe-my-app-qe), which keeps several
+# repos open in one workspace distinguishable. Letters, digits, spaces, '-',
+# '_' and '.' are all fine: `API_Test_Generator`, `Acme Web QE`.
+agent_name: ""
+
+# Conventions: `appqe conventions discover` records this suite's own seams
+# (client factory, test data, page objects) in .appqe/conventions.yml - a
+# separate, committed file generated tests build on. Not configured here.
+
+# ── Test stacks (the 30%) ──
+# Seeded from the project's own files by `appqe init` (see `appqe detect`).
+profile: openapi_xunit        # API: openapi_xunit | openapi_junit | openapi_pytest | generic_api
+# perf_profile: k6_js   # opt in to k6 load testing
+# unit_backend_profile: unit_pytest   # opt in to backend unit testing; then set unit_backend.tests_dir (e.g. tests/unit)
+# unit_frontend_profile: unit_vitest_react   # opt in to frontend unit testing; then set unit_frontend.tests_dir (e.g. src)
+api_language: "C#"
+
+# ── API testing ──
+# description: your API description. An OpenAPI or Swagger spec, a Postman
+# collection or a GraphQL schema all work. No spec? Leave it blank: an API test
+# run has your coding agent write .appqe/contract.yml from what you have.
+api:
+  description: "specs/openapi.json"
+  base_url: "https://api.realworld.show/api"   # API under test, e.g. https://api.staging.example.com
+  tests_dir: tests
+  auth_scheme: "API key in the Authorization header (Token)"   # how tests authenticate, read from the spec when it says; e.g. Bearer JWT
+
+# ── Bug tracker (bug retest / investigation) ──
+tracker:
+  base_url: ""                 # e.g. https://your-org.atlassian.net
+  project_key: ""              # e.g. PROJ, so a bare `123` resolves to PROJ-123
+  # qe_lead: ""                # the person named in bug comments; unset says "the QE lead"
+
+# ── Requirement context sources (test generation) ──
+# A spec gives the shape of an endpoint; the story and the wiki give the rules.
+# One list, any system. A binding is an `mcp:` tool the host already has (filled
+# in by `appqe init` when the server is declared for this project) or a script in
+# this repo (`appqe tools add <name>` walks the setup). A listed source with an
+# empty binding is asked about when a run needs it; `skip` records a decision
+# not to use it; a system not listed is simply absent, and the agent generates
+# from the spec alone. `appqe config set tools.<name> <binding>` edits an entry.
+data_sources:
+  - name: jira
+    binding: mcp:atlassian/getJiraIssue  # MCP server declared in .mcp.json (claude), .vscode/mcp.json (copilot)
+  - name: confluence
+    binding: mcp:atlassian/getConfluencePage  # MCP server declared in .mcp.json (claude), .vscode/mcp.json (copilot)
+#   - name: jira
+#     binding: mcp:atlassian/getJiraIssue        # or utilities/jira_client.py
+#   - name: confluence
+#     binding: mcp:atlassian/getConfluencePage   # or utilities/confluence_client.py
+#   - name: linear                               # any other system; `search:` sets
+#     binding: mcp:linear                        # how it is queried ({term}/{terms}
+#     search: '--search "{terms}"'               # are filled from the endpoints)
+# Confluence host is derived from tracker.base_url (+ /wiki) unless set here.
+# confluence:
+#   base_url: ""               # only if Confluence is on a different site than Jira
+#   space_key: ""              # default space a title/CQL search is scoped to
+
+# ── Usage data (orders the plan and weights coverage by what users do) ──
+# An export your analytics can produce: JSON {{"GET /path": count}} or CSV
+# method,path,count. appqe reads the file; it never calls the service. `binding`
+# is a script or mcp: tool the agent runs to write the file when it is missing.
+# usage:
+#   file: .appqe/usage.json
+#   binding: ""
+
+# ── Legacy equivalence (characterize the old system, check the replacement) ──
+# equivalence:
+#   legacy_url: ""             # the system whose behaviour is recorded and confirmed
+#   replacement_url: ""        # the rebuild the confirmed pack is run against
+#   scope: ""                  # one component or flow set, for a strangler migration
+
+# ── Toolchain ──
+package_manager:             # Python/Node only: uv | poetry | pip | npm | pnpm | yarn
+api_test_runner: dotnet test
+
+# ── Coding agent to deploy for (names the AGENT, not the editor) ──
+default_platform: copilot      # copilot | claude | cursor | windsurf | kiro
+# agents: [claude, copilot]   # list them all if your team uses more than one
+
+# ── How your team installs appqe (shown in appqe_Readme.md) ──
+# Blank shows the standard install from the appqe git repository, which is
+# private: it needs GitHub access to that repository. Set this if your team
+# installs appqe another way (an internal package index, an offline wheel), or
+# before handing the project to a team without that access. The guardrail hooks
+# need the appqe command, so a teammate who cannot install it has every agent
+# tool call blocked.
+#   install_command: "pip install appqe==0.2.0 --index-url https://nexus.example.com/simple"
+#   install_command: "uv tool install ./vendor/appqe-0.2.0-py3-none-any.whl"   # air-gapped
+# install_command: ""
+
+# ── Models (defaults shown; override any of them) ──
+# A family like `opus` is pinned to an exact version for each coding agent on the
+# first `appqe sync`, from the models your org allows, and recorded in
+# .appqe/models.yml (commit it). Write a version (`opus-5.5`) to choose one
+# yourself. `appqe models` shows what each role asks for and is pinned to.
+# After changing a value here, run `appqe sync` again.
+models:
+  coordinator: opus            # drives the loop and holds the run context
+  tiers:                       # a worker's model comes from its role's tier
+    light: haiku               # fetch & survey roles
+    standard: sonnet           # audit, map, diff, review, triage roles
+    deep: sonnet               # generation & root-cause roles
+  # Per-role model override. Default `{}` = every role uses its tier (above).
+  # For the nameable roles and the tier each defaults to, run `appqe capabilities`
+  # (it prints the live registry) or see docs/CONFIGURATION.md "Model tiers" -
+  # a list copied here would drift the first time a role is added.
+  # To pin roles, replace the `workers: {}` line below with a block (a key cannot
+  # carry both `{}` and children) - list only the roles you change, e.g.:
+  #   workers:
+  #     endpoint_survey: haiku     # pin a light role to a model
+  #     self_review: sonnet        # pin a standard role
+  #     generation: sonnet         # pin a deep role
+  workers: {}
+
+# ── Guardrails (live non-prod allowed by default; a named prod host blocked) ──
+security:
+  allow_prod: false            # must be true to hit a target identified as production
+  allowed_hosts: []            # extra hostnames tests may hit (base_urls auto-allowed)
+  # hosts always treated as production / never-hit; seeded from servers the
+  # spec itself describes as production
+  blocked_hosts: []
+  allowed_commands: []         # extra executables appqe's own subprocesses may run
+  redact_pii: true             # redact emails/PII (not just secrets) from captured output
+
+  # strict_commands: false     # also hold an executable allowlist against YOUR
+  #                            # agent's terminal commands. Off, and commented out
+  #                            # because it is a step backwards for most projects:
+  #                            # the list is your toolchain, not appqe's, and it
+  #                            # kept refusing ordinary work (`date`, `sed`, `awk`,
+  #                            # deleting appqe's own stale test reports). It stops
+  #                            # a careless command, never a determined one.
+
+  # Guessing production from a HOSTNAME is off by default. An environment that
+  # runs a QE suite is usually already network-constrained, so a substring rule
+  # over hostnames mostly re-blocks what the network has blocked already - while
+  # still costing false positives on names that merely read like production
+  # (a `live-chat` service, a `prod-eu` staging mirror, `prodigy.internal`).
+  #
+  # Turn it on by listing markers. A host whose name carries one is then treated
+  # as production and refused unless `allow_prod: true`, and a write method
+  # (POST/PUT/PATCH/DELETE) against it is refused even then:
+  #   prod_markers: [prod, production, live]
+  #
+  # What still protects you with this empty, and needs no guessing:
+  #   * `blocked_hosts` - name the real production hosts and they are refused
+  #     outright. Exact, so it cannot misfire the way a substring can.
+  #   * `allowed_hosts` - the other direction: list the only hosts the suite may
+  #     reach and everything else is refused, which is the stronger stance if
+  #     your targets are few and known.
+  #   * the credential guard, which is unrelated to hosts and always on: a
+  #     hardcoded secret or token in a generated test is refused regardless.
+  prod_markers: []
+
+# ── Interaction: may a run stop to ASK you something? ──
+# Off. A run decides a reversible choice with the best practice for the stack,
+# carries on, and lists what it decided in the closing summary - so you review
+# once, at the end, instead of being interrupted mid-flight to confirm a choice
+# the run had already made. (A prompt that marks one option "Recommended" is
+# exactly that: the answer was known before you were asked.)
+#
+# Set this true when you WANT the conversation - exploratory work, a
+# first-of-a-kind suite, a spec you do not trust yet - where being asked which
+# page to survey is cheaper than a full run in the wrong direction.
+#
+# appqe's own approval gates are unaffected either way: those are decisions appqe
+# emits and holds the run open for. Use `gates:` below to auto-approve those.
+# interaction:
+#   refinement_questions: false
+
+# ── Run telemetry (local only: .git/appqe/, never sent anywhere) ──
+# telemetry:
+#   enabled: true        # false writes no run history at all
+#   retain_runs: 100     # runs kept, newest first; 0 keeps every run forever.
+#                        # An unfinished run is never pruned - it is what `appqe
+#                        # resume` needs.
+
+# ── Quality gates ──
+quality:
+  min_endpoint_coverage: 0.8   # fraction of API operations that need a test
+  # coverage_scope: request     # what a RUN measures against: "request" (default,
+  #                             # the operations the request named, with a caution
+  #                             # when overall coverage lags) | "full" (whole spec).
+  #                             # `appqe coverage` always audits the full spec.
+  # Min self-review passes before "done". This is the one quality setting with a
+  # measured wall-clock price: review was 19.5% of a generation run against
+  # generation's own 50.5%, and unlike most costs it is spent INSIDE the review
+  # worker rather than as an extra round trip, so lowering it shortens the run
+  # without removing a step. Pass 1 finds what the generator missed; pass 2 finds
+  # what pass 1's own fixes broke. `1` is a real choice for an exploratory run;
+  # it is not free, and it is yours to make rather than appqe's.
+  self_review_iterations: 2
+  flaky_reruns: 3              # re-runs used to classify a failure as flaky. Each
+                               # one re-runs the suite, so on a slow suite this is
+                               # the other setting that costs real time; 0 disables
+                               # flakiness classification entirely.
+  allow_quarantine: true
+
+# ── Token economy (how tightly the agent budgets its own output) ──
+# token_economy:
+#   level: lite          # lite (default) | full (strict throughout) | off
+#   escalate_after: 10   # actions before a long run escalates lite -> full; 0 = never
+
+# ── Price overrides (USD per 1M tokens: [input, output]) ──
+# The cost estimators carry a built-in price table pinned to the vendor list,
+# but list prices drift and appqe releases lag them. Correct a rate here the
+# day it changes; exact model ids win over tier words.
+# pricing:
+#   claude-sonnet-5: [2, 10]   # this exact model id
+#   opus: [5, 25]              # every opus-tier model
+
+# ── Consumer extension points ──
+# intents: teach the router a phrase of your own. Consumer patterns are tried
+# BEFORE the built-in rules, so this also overrides how a request would route.
+# intents:
+#   - mode: bug_retest
+#     pattern: verify the fix for PROJ-[0-9]+
+#     confidence: 0.95
+#
+# vars: any key becomes {{vars.<name>}} in deployed content - the way to put a
+# project's own vocabulary into the guidance without forking it.
+# vars:
+#   escalation_channel: "#qe-oncall"
+
+# ── Approval gates ──
+# `{}` = none auto-approved: a run pauses for your sign-off at each. Auto-approving
+# a gate skips the human check it exists for, so it is opt-in, per gate. Gate ids:
+#   plan_approval            - sign off the test plan before generation
+#   generation_review        - review the generated tests before they are "final"
+#   bug_comment_approval     - approve a comment before it is posted to the tracker
+#   tool_setup               - wire declared-but-unset requirement sources mid-run
+#   build_spec               - a spec file the run needs (configured, or the one
+#                              the build generates its client from) is missing;
+#                              "never" sets api.missing_spec: proceed
+#   spec_reader              - the spec cannot be read and a person can fix it
+#   project_target           - is this the project you meant? raised when this
+#                              project cannot serve the run and another in the
+#                              same *.code-workspace can. Auto-approving it
+#                              answers "yes, this one" unread, which is the
+#                              mistake it exists to catch
+#   explore_setup            - wire a way to open the app (ui.explore) before a
+#                              UI survey describes pages it cannot see
+#   source_connect           - a wired mcp: requirement source could not be called:
+#                              connect the server (approve, sign in), then retry
+#   source_scope             - a wired mcp: tracker or wiki has no project/space key:
+#                              record it once, or search unscoped this run
+#   baseline_approval        - adopt newly captured screenshots as the visual baseline
+#   equivalence_pack_approval - confirm the record of the legacy system, case by
+#                              case, before the replacement is checked against it
+#   instrumentation_approval - apply a markup-only diff to the APPLICATION's code
+#   migration_plan_approval  - port/merge/regenerate/DROP per test, before any porting
+#   unit_side                - which unit side to switch on, when none is configured;
+#                              there is no default, so every level asks
+#   behaviour_approval       - tdd: the behaviour as examples, confirmed before any
+#                              test is written; the questions are asked here
+gates: {}
+# To auto-approve, REPLACE the `gates: {}` line above with a block - a key cannot
+# carry both `{}` and child keys. E.g. run local test generation unattended:
+#   gates:
+#     plan_approval:
+#       auto_approve: true
+#     generation_review:
+#       auto_approve: true
+# Leave bug_comment_approval gated - it posts to the tracker (outward-facing).
+
+# What this project tests: api | ui | both. Seeded from the stacks `appqe detect`
+# found. Leave it unset to infer it from the configured targets instead - sync
+# then tells you what it inferred, so content is never withheld from a project
+# that meant to have it without you hearing about it.
+scope: api
+
+# How often appqe stops the agent. One setting for the setup questions a run
+# asks before any work (a spec file missing, a spec appqe cannot read, no test
+# folder, a requirements source not wired, no way to open the app) and the tool
+# guard's discipline refusals (a worker's command run on the coordinator, a new
+# test file with no run open, appqe.yml edited mid-run).
+#   strict    ask every setup question; keep every refusal
+#   standard  proceed past setup questions, recording what was skipped and
+#             what it costs; keep every refusal (default)
+#   relaxed   standard, and the three refusals above are allowed
+# Secrets, production hosts, destructive commands and the human review gates
+# are the same at every level. `APPQE_GUARD=strict` overrides it for one session.
+guard: standard
+
+# ── Deliberately omitted (ui-only; scope is api) ──
+# ui_profile, ui_language, ui:, ui_test_runner, quality.min_flow_coverage - set these and flip scope to "both" if this project
+# ever grows a UI suite.

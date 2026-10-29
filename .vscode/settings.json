@@ -1,4 +1,9 @@
 {
   "chat.agent.backgroundTodoAgent.enabled": false,
-  "github.copilot.chat.agent.backgroundTodoAgent.enabled": false
+  "github.copilot.chat.agent.backgroundTodoAgent.enabled": false,
+  "workbench.editorAssociations": {
+    "**/.appqe/plans/*.md": "vscode.markdown.preview.editor",
+    "**/.appqe/reports/*.md": "vscode.markdown.preview.editor",
+    "**/.appqe/runs/*-progress.md": "vscode.markdown.preview.editor"
+  }
 }
